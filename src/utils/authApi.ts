@@ -11,6 +11,7 @@ export interface User {
   email?: string;
   phone?: string;
   fullName?: string;
+  name?: string; // Display name for UI
   role: 'citizen' | 'student' | 'teacher' | 'urban_manager' | 'researcher' | 'business' | 'verifier' | 'government';
   avatar?: string;
   verified: boolean;

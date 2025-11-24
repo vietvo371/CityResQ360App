@@ -1,13 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ViewStyle } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { 
-  theme, 
-  SPACING, 
-  FONT_SIZE, 
-  BORDER_RADIUS, 
+import { useNavigation } from '@react-navigation/native';
+import {
+  theme,
+  SPACING,
+  FONT_SIZE,
+  BORDER_RADIUS,
   ICON_SIZE,
-  wp 
+  wp,
+  hp,
+  SCREEN_PADDING
 } from '../theme';
 
 interface PageHeaderProps {
@@ -16,7 +19,18 @@ interface PageHeaderProps {
   showNotification?: boolean;
   notificationCount?: number;
   onNotificationPress?: () => void;
-  variant?: 'gradient' | 'simple'; // gradient cho menu, simple cho home
+  variant?: 'home' | 'default' | 'featured';
+
+  // Navigation props
+  onBack?: () => void;
+  showBack?: boolean;
+
+  // Right Action props
+  rightIcon?: string;
+  onRightPress?: () => void;
+  rightComponent?: React.ReactNode;
+
+  style?: ViewStyle;
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({
@@ -25,20 +39,61 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   showNotification = true,
   notificationCount = 0,
   onNotificationPress,
-  variant = 'simple',
+  variant = 'default',
+  onBack,
+  showBack,
+  rightIcon,
+  onRightPress,
+  rightComponent,
+  style,
 }) => {
-  if (variant === 'gradient') {
-    // Header với background gradient/primary (cho MenuHocTap, MenuHopDong, etc.)
+  const navigation = useNavigation();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  // 1. Home Variant (Dashboard style)
+  if (variant === 'home') {
     return (
-      <View style={styles.gradientWrapper}>
-        <View style={styles.gradientContent}>
+      <View style={[styles.homeHeader, style]}>
+        <View style={styles.homeLeft}>
+          <Text style={styles.homeGreeting}>{subtitle || 'Xin chào'}</Text>
+          <Text style={styles.homeTitle}>{title}</Text>
+        </View>
+        {showNotification && (
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={onNotificationPress}
+          >
+            <Icon name="bell-outline" size={ICON_SIZE.md} color={theme.colors.text} />
+            {notificationCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{notificationCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  // 2. Featured Variant (Gradient background for special screens)
+  if (variant === 'featured') {
+    return (
+      <View style={[styles.featuredWrapper, style]}>
+        <View style={styles.featuredContent}>
           <View style={styles.textWrapper}>
-            <Text style={styles.gradientTitle}>{title}</Text>
-            {subtitle && <Text style={styles.gradientSubtitle}>{subtitle}</Text>}
+            <Text style={styles.featuredTitle}>{title}</Text>
+            {subtitle && <Text style={styles.featuredSubtitle}>{subtitle}</Text>}
           </View>
           {showNotification && (
-            <TouchableOpacity 
-              style={styles.gradientIconButton}
+            <TouchableOpacity
+              style={styles.featuredIconButton}
               onPress={onNotificationPress}
             >
               <Icon name="bell-ring" size={ICON_SIZE.sm} color={theme.colors.primary} />
@@ -54,39 +109,81 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     );
   }
 
-  // Header simple (cho HomePage)
+  // 3. Default Variant (Standard header for child screens)
+  const shouldShowBack = showBack !== undefined ? showBack : true;
+
   return (
-    <View style={styles.simpleHeader}>
-      <View style={styles.simpleLeft}>
-        <Text style={styles.simpleGreeting}>{subtitle || 'Xin chào'}</Text>
-        <Text style={styles.simpleTitle}>{title}</Text>
+    <View style={[styles.defaultHeader, style]}>
+      <View style={styles.leftContainer}>
+        {shouldShowBack && (
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Icon name="chevron-left" size={ICON_SIZE.lg} color={theme.colors.text} />
+          </TouchableOpacity>
+        )}
       </View>
-      {showNotification && (
-        <TouchableOpacity 
-          style={styles.simpleNotificationButton}
-          onPress={onNotificationPress}
-        >
-          <Icon name="bell-outline" size={ICON_SIZE.md} color={theme.colors.text} />
-          {notificationCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{notificationCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      )}
+
+      <View style={styles.centerContainer}>
+        <Text style={styles.defaultTitle} numberOfLines={1}>{title}</Text>
+        {subtitle && <Text style={styles.defaultSubtitle} numberOfLines={1}>{subtitle}</Text>}
+      </View>
+
+      <View style={styles.rightContainer}>
+        {rightComponent ? (
+          rightComponent
+        ) : rightIcon ? (
+          <TouchableOpacity onPress={onRightPress} style={styles.rightButton}>
+            <Icon name={rightIcon} size={ICON_SIZE.md} color={theme.colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholderRight} />
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // Gradient Header (cho menu tabs)
-  gradientWrapper: {
+  // Home Variant
+  homeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+    backgroundColor: theme.colors.background,
+  },
+  homeLeft: {
+    flex: 1,
+  },
+  homeGreeting: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  homeTitle: {
+    fontSize: FONT_SIZE['2xl'],
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  notificationButton: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
     backgroundColor: theme.colors.backgroundSecondary,
-    paddingHorizontal: SPACING.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+  },
+
+  // Featured Variant
+  featuredWrapper: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: SCREEN_PADDING.horizontal,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
   },
-  gradientContent: {
+  featuredContent: {
     backgroundColor: theme.colors.primary,
     borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: SPACING.xl,
@@ -100,18 +197,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: SPACING.md,
   },
-  gradientTitle: {
+  featuredTitle: {
     color: theme.colors.white,
     fontSize: FONT_SIZE.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700',
   },
-  gradientSubtitle: {
+  featuredSubtitle: {
     color: theme.colors.white,
     opacity: 0.9,
     fontSize: FONT_SIZE.sm,
     marginTop: SPACING.xs,
   },
-  gradientIconButton: {
+  featuredIconButton: {
     width: wp('10%'),
     height: wp('10%'),
     borderRadius: wp('5%'),
@@ -120,39 +217,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Simple Header (cho HomePage)
-  simpleHeader: {
+  // Default Variant
+  defaultHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    justifyContent: 'space-between',
+    height: hp('7%'),
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
-  simpleLeft: {
+  leftContainer: {
+    width: wp('12%'),
+    alignItems: 'flex-start',
+  },
+  centerContainer: {
     flex: 1,
+    alignItems: 'center',
   },
-  simpleGreeting: {
-    fontSize: FONT_SIZE.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: SPACING.xs,
+  rightContainer: {
+    width: wp('12%'),
+    alignItems: 'flex-end',
   },
-  simpleTitle: {
-    fontSize: FONT_SIZE['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
+  backButton: {
+    padding: SPACING.xs,
+    marginLeft: -SPACING.xs,
+  },
+  defaultTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
     color: theme.colors.text,
   },
-  simpleNotificationButton: {
-    width: wp('11%'),
-    height: wp('11%'),
-    borderRadius: wp('5.5%'),
-    backgroundColor: theme.colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...theme.shadows.sm,
+  defaultSubtitle: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.textSecondary,
+  },
+  rightButton: {
+    padding: SPACING.xs,
+    marginRight: -SPACING.xs,
+  },
+  placeholderRight: {
+    width: ICON_SIZE.lg,
   },
 
-  // Badge (chung)
+  // Common Badge
   badge: {
     position: 'absolute',
     top: -4,
@@ -164,10 +273,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: theme.colors.white,
   },
   badgeText: {
-    fontSize: FONT_SIZE['2xs'],
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 10,
+    fontWeight: '700',
     color: theme.colors.white,
   },
 });

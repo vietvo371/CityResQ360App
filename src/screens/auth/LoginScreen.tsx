@@ -67,6 +67,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
+    navigation.navigate('MainTabs');
+
     if (!validateForm()) {
       return;
     }
@@ -82,8 +84,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
       if (result.success) {
         // Login successful - navigate to main tabs
-        // TODO: Navigate based on user role (citizen/government)
-        navigation.navigate('StudentTabs');
+        navigation.navigate('MainTabs');
       } else {
         // Handle errors
         if (result.errors) {

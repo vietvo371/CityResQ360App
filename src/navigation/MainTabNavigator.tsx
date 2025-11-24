@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, Text, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme, TAB_BAR } from '../theme';
-import { RootStackParamList, StudentTabParamList, ParentTabParamList } from './types';
+import { RootStackParamList, MainTabParamList } from './types';
 
 // Auth flow screens
 import LoadingScreen from '../screens/auth/LoadingScreen';
@@ -18,54 +18,70 @@ import UpdatePasswordScreen from '../screens/auth/UpdatePasswordScreen';
 import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
 import PhoneVerificationScreen from '../screens/auth/PhoneVerificationScreen';
 
-// Student tabs
-import HomePage from '../screens/student/HomePage';
-import MenuHocTap from '../screens/student/MenuHocTap';
-import MenuHopDong from '../screens/student/MenuHopDong';
-import MenuTrungTam from '../screens/student/MenuTrungTam';
-import Profile from '../screens/student/Profile';
+// Main tabs screens
+import HomeScreen from '../screens/main/HomeScreen';
+import MapScreen from '../screens/main/MapScreen';
+import ReportsScreen from '../screens/main/ReportsScreen';
+import WalletScreen from '../screens/main/WalletScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
 
-// Parent tabs
-import ParentHomePage from '../screens/parent/ParentHomePage';
-import MenuCon from '../screens/parent/MenuCon';
-import ParentMenuHopDong from '../screens/parent/ParentMenuHopDong';
-import ParentMenuTrungTam from '../screens/parent/ParentMenuTrungTam';
-import ParentProfile from '../screens/parent/ParentProfile';
+// Reports Module
+import ReportListScreen from '../screens/reports/ReportListScreen';
+import ReportDetailScreen from '../screens/reports/ReportDetailScreen';
+import CreateReportScreen from '../screens/reports/CreateReportScreen';
+import EditReportScreen from '../screens/reports/EditReportScreen';
+import MyReportsScreen from '../screens/reports/MyReportsScreen';
+import NearbyReportsScreen from '../screens/reports/NearbyReportsScreen';
+import TrendingReportsScreen from '../screens/reports/TrendingReportsScreen';
+import ReportCommentsScreen from '../screens/reports/ReportCommentsScreen';
 
-// Student stack screens
-import ThoiKhoaBieu from '../screens/student/ThoiKhoaBieu';
-import Assignment from '../screens/student/Assignment';
-import NopBaiTapVeNha from '../screens/student/NopBaiTapVeNha';
-import NopBaiTapVeNhaDetail from '../screens/student/NopBaiTapVeNhaDetail';
-import DiemBaiTap from '../screens/student/DiemBaiTap';
-import BangDiemToanKhoa from '../screens/student/BangDiemToanKhoa';
-import BangDiemChiTiet from '../screens/student/BangDiemChiTiet';
-import TaiLieuHocTap from '../screens/student/TaiLieuHocTap';
-import ChiTietTaiLieu from '../screens/student/ChiTietTaiLieu';
-import DanhGiaBuoiHoc from '../screens/student/DanhGiaBuoiHoc';
-import WriteDanhGiaBuoiHoc from '../screens/student/WriteDanhGiaBuoiHoc';
-import NhanXetGiaoVien from '../screens/student/NhanXetGiaoVien';
-import ChiTietNhanXetGiaoVien from '../screens/student/ChiTietNhanXetGiaoVien';
-import CamKetDauRa from '../screens/student/CamKetDauRa';
-import DiemDanhDiemThuong from '../screens/student/DiemDanhDiemThuong';
-import ChiTietDiemDanhDiemThuong from '../screens/student/ChiTietDiemDanhDiemThuong';
-import HopDong from '../screens/student/HopDong';
-import HopDongDetails from '../screens/student/HopDongDetails';
-import HoaDonHocPhi from '../screens/student/HoaDonHocPhi';
-import HoaDonHocPhiDetails from '../screens/student/HoaDonHocPhiDetails';
-import DonXinVang from '../screens/student/DonXinVang';
-import WriteDonXinVang from '../screens/student/WriteDonXinVang';
-import GuiYeuCauHoTro from '../screens/student/GuiYeuCauHoTro';
-import WriteGuiYeuCauHoTro from '../screens/student/WriteGuiYeuCauHoTro';
-import ThongBao from '../screens/student/ThongBao';
-import Base from '../screens/student/Base';
-import Test from '../screens/student/Test';
+// Wallet Module
+import WalletDetailScreen from '../screens/wallet/WalletDetailScreen';
+import WalletTransactionsScreen from '../screens/wallet/WalletTransactionsScreen';
+import WalletRewardsScreen from '../screens/wallet/WalletRewardsScreen';
+import RedeemRewardScreen from '../screens/wallet/RedeemRewardScreen';
+
+// Notifications Module
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import NotificationSettingsScreen from '../screens/notifications/NotificationSettingsScreen';
+
+// Stats Module
+import DashboardScreen from '../screens/stats/DashboardScreen';
+import StatsOverviewScreen from '../screens/stats/StatsOverviewScreen';
+import StatsCategoriesScreen from '../screens/stats/StatsCategoriesScreen';
+import StatsTimelineScreen from '../screens/stats/StatsTimelineScreen';
+import LeaderboardScreen from '../screens/stats/LeaderboardScreen';
+import CityStatsScreen from '../screens/stats/CityStatsScreen';
+
+// Map Module
+import MapReportsScreen from '../screens/map/MapReportsScreen';
+import MapHeatmapScreen from '../screens/map/MapHeatmapScreen';
+import MapClustersScreen from '../screens/map/MapClustersScreen';
+import MapRoutesScreen from '../screens/map/MapRoutesScreen';
+
+// Agencies Module
+import AgencyListScreen from '../screens/agencies/AgencyListScreen';
+import AgencyDetailScreen from '../screens/agencies/AgencyDetailScreen';
+import AgencyReportsScreen from '../screens/agencies/AgencyReportsScreen';
+import AgencyStatsScreen from '../screens/agencies/AgencyStatsScreen';
+
+// Profile Module
+import UserProfileScreen from '../screens/profile/UserProfileScreen';
+import UserReportsScreen from '../screens/profile/UserReportsScreen';
+import UserStatsScreen from '../screens/profile/UserStatsScreen';
+
+// Placeholder component for screens that don't exist yet
+const PlaceholderScreen = ({ route }: any) => (
+  <View style={styles.placeholder}>
+    <Text style={styles.placeholderText}>{route.name}</Text>
+    <Text style={styles.placeholderSubtext}>Screen đang được phát triển</Text>
+  </View>
+);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const StudentTab = createBottomTabNavigator<StudentTabParamList>();
-const ParentTab = createBottomTabNavigator<ParentTabParamList>();
+const MainTab = createBottomTabNavigator<MainTabParamList>();
 
-const StudentTabs = () => {
+const MainTabs = () => {
   const tabScreenOptions = {
     headerShown: false,
     tabBarActiveTintColor: theme.colors.primary,
@@ -100,128 +116,48 @@ const StudentTabs = () => {
   };
 
   return (
-    <StudentTab.Navigator screenOptions={tabScreenOptions}>
-      <StudentTab.Screen
-        name="HomePage"
-        component={HomePage}
+    <MainTab.Navigator screenOptions={tabScreenOptions}>
+      <MainTab.Screen
+        name="Home"
+        component={HomeScreen}
         options={{
           title: 'Trang chủ',
           tabBarIcon: ({ color }) => <Icon name="home-variant" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
-      <StudentTab.Screen
-        name="MenuHocTap"
-        component={MenuHocTap}
+      <MainTab.Screen
+        name="Map"
+        component={MapScreen}
         options={{
-          title: 'Học tập',
-          tabBarIcon: ({ color }) => <Icon name="book-open-page-variant" size={TAB_BAR.iconSize} color={color} />,
+          title: 'Bản đồ',
+          tabBarIcon: ({ color }) => <Icon name="map-marker-outline" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
-      <StudentTab.Screen
-        name="MenuHopDong"
-        component={MenuHopDong}
+      <MainTab.Screen
+        name="Reports"
+        component={ReportsScreen}
         options={{
-          title: 'Hợp đồng',
-          tabBarIcon: ({ color }) => <Icon name="file-document-outline" size={TAB_BAR.iconSize} color={color} />,
+          title: 'Phản ánh',
+          tabBarIcon: ({ color }) => <Icon name="alert-circle-outline" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
-      <StudentTab.Screen
-        name="MenuTrungTam"
-        component={MenuTrungTam}
+      <MainTab.Screen
+        name="Wallet"
+        component={WalletScreen}
         options={{
-          title: 'Trung tâm',
-          tabBarIcon: ({ color }) => <Icon name="office-building-marker-outline" size={TAB_BAR.iconSize} color={color} />,
+          title: 'Ví điểm',
+          tabBarIcon: ({ color }) => <Icon name="wallet-outline" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
-      <StudentTab.Screen
+      <MainTab.Screen
         name="Profile"
-        component={Profile}
+        component={ProfileScreen}
         options={{
           title: 'Cá nhân',
           tabBarIcon: ({ color }) => <Icon name="account-circle" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
-    </StudentTab.Navigator>
-  );
-};
-
-const ParentTabs = () => {
-  const tabScreenOptions = {
-    headerShown: false,
-    tabBarActiveTintColor: theme.colors.primary,
-    tabBarInactiveTintColor: theme.colors.textSecondary,
-    tabBarStyle: {
-      backgroundColor: theme.colors.white,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.borderLight,
-      paddingBottom: TAB_BAR.paddingBottom,
-      paddingTop: 8,
-      height: TAB_BAR.height,
-      ...Platform.select({
-        ios: {
-          shadowColor: theme.colors.black,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        android: {
-          elevation: 8,
-        },
-      }),
-    },
-    tabBarLabelStyle: {
-      fontSize: TAB_BAR.fontSize,
-      fontWeight: theme.typography.fontWeight.semibold,
-      marginTop: 4,
-    },
-    tabBarIconStyle: {
-      marginTop: 4,
-    },
-  };
-
-  return (
-    <ParentTab.Navigator screenOptions={tabScreenOptions}>
-      <ParentTab.Screen
-        name="ParentHomePage"
-        component={ParentHomePage}
-        options={{
-          title: 'Trang chủ',
-          tabBarIcon: ({ color }) => <Icon name="home-variant" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-      <ParentTab.Screen
-        name="MenuCon"
-        component={MenuCon}
-        options={{
-          title: 'Thông tin con',
-          tabBarIcon: ({ color }) => <Icon name="account-child" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-      <ParentTab.Screen
-        name="MenuHopDong"
-        component={ParentMenuHopDong}
-        options={{
-          title: 'Hợp đồng',
-          tabBarIcon: ({ color }) => <Icon name="file-document-outline" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-      <ParentTab.Screen
-        name="MenuTrungTam"
-        component={ParentMenuTrungTam}
-        options={{
-          title: 'Trung tâm',
-          tabBarIcon: ({ color }) => <Icon name="office-building-marker-outline" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-      <ParentTab.Screen
-        name="Profile"
-        component={ParentProfile}
-        options={{
-          title: 'Cá nhân',
-          tabBarIcon: ({ color }) => <Icon name="account-circle" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-    </ParentTab.Navigator>
+    </MainTab.Navigator>
   );
 };
 
@@ -251,45 +187,85 @@ const MainNavigator = () => {
       </Stack.Group>
 
       <Stack.Group>
-        <Stack.Screen name="StudentTabs" component={StudentTabs} />
-        <Stack.Screen name="ParentTabs" component={ParentTabs} />
+        <Stack.Screen name="MainTabs" component={MainTabs} />
       </Stack.Group>
 
       <Stack.Group>
-        <Stack.Screen name="ThoiKhoaBieu" component={ThoiKhoaBieu} />
-        <Stack.Screen name="Assignment" component={Assignment} />
-        <Stack.Screen name="NopBaiTapVeNha" component={NopBaiTapVeNha} />
-        <Stack.Screen name="NopBaiTapVeNhaDetail" component={NopBaiTapVeNhaDetail} />
-        <Stack.Screen name="DiemBaiTap" component={DiemBaiTap} />
-        <Stack.Screen name="BangDiemToanKhoa" component={BangDiemToanKhoa} />
-        <Stack.Screen name="BangDiemChiTiet" component={BangDiemChiTiet} />
-        <Stack.Screen name="TaiLieuHocTap" component={TaiLieuHocTap} />
-        <Stack.Screen name="ChiTietTaiLieu" component={ChiTietTaiLieu} />
-        <Stack.Screen name="DanhGiaBuoiHoc" component={DanhGiaBuoiHoc} />
-        <Stack.Screen name="WriteDanhGiaBuoiHoc" component={WriteDanhGiaBuoiHoc} />
-        <Stack.Screen name="NhanXetGiaoVien" component={NhanXetGiaoVien} />
-        <Stack.Screen name="ChiTietNhanXetGiaoVien" component={ChiTietNhanXetGiaoVien} />
-        <Stack.Screen name="CamKetDauRa" component={CamKetDauRa} />
-        <Stack.Screen name="DiemDanhDiemThuong" component={DiemDanhDiemThuong} />
-        <Stack.Screen name="ChiTietDiemDanhDiemThuong" component={ChiTietDiemDanhDiemThuong} />
-        <Stack.Screen name="HopDong" component={HopDong} />
-        <Stack.Screen name="HopDongDetails" component={HopDongDetails} />
-        <Stack.Screen name="HoaDonHocPhi" component={HoaDonHocPhi} />
-        <Stack.Screen name="HoaDonHocPhiDetails" component={HoaDonHocPhiDetails} />
-        <Stack.Screen name="DonXinVang" component={DonXinVang} />
-        <Stack.Screen name="WriteDonXinVang" component={WriteDonXinVang} />
-        <Stack.Screen name="GuiYeuCauHoTro" component={GuiYeuCauHoTro} />
-        <Stack.Screen name="WriteGuiYeuCauHoTro" component={WriteGuiYeuCauHoTro} />
-        <Stack.Screen name="ThongBao" component={ThongBao} />
-        <Stack.Screen name="Base" component={Base} />
-        <Stack.Screen name="Test" component={Test} />
+        {/* Auth screens */}
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen as any} />
         <Stack.Screen name="UpdatePassword" component={UpdatePasswordScreen} />
         <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
         <Stack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />
+
+        {/* Reports Module */}
+        <Stack.Screen name="ReportList" component={ReportListScreen} />
+        <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
+        <Stack.Screen name="CreateReport" component={CreateReportScreen} />
+        <Stack.Screen name="EditReport" component={EditReportScreen} />
+        <Stack.Screen name="MyReports" component={MyReportsScreen} />
+        <Stack.Screen name="NearbyReports" component={NearbyReportsScreen} />
+        <Stack.Screen name="TrendingReports" component={TrendingReportsScreen} />
+
+        {/* Comments Module */}
+        <Stack.Screen name="ReportComments" component={ReportCommentsScreen} />
+
+        {/* Map Module */}
+        <Stack.Screen name="MapReports" component={MapReportsScreen} />
+        <Stack.Screen name="MapHeatmap" component={MapHeatmapScreen} />
+        <Stack.Screen name="MapClusters" component={MapClustersScreen} />
+        <Stack.Screen name="MapRoutes" component={MapRoutesScreen} />
+
+        {/* Wallet Module */}
+        <Stack.Screen name="WalletDetail" component={WalletDetailScreen} />
+        <Stack.Screen name="WalletTransactions" component={WalletTransactionsScreen} />
+        <Stack.Screen name="WalletRewards" component={WalletRewardsScreen} />
+        <Stack.Screen name="RedeemReward" component={RedeemRewardScreen} />
+
+        {/* Notifications Module */}
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+
+        {/* Dashboard/Stats Module */}
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Screen name="StatsOverview" component={StatsOverviewScreen} />
+        <Stack.Screen name="StatsCategories" component={StatsCategoriesScreen} />
+        <Stack.Screen name="StatsTimeline" component={StatsTimelineScreen} />
+        <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+        <Stack.Screen name="CityStats" component={CityStatsScreen} />
+
+        {/* Agencies Module */}
+        <Stack.Screen name="AgencyList" component={AgencyListScreen} />
+        <Stack.Screen name="AgencyDetail" component={AgencyDetailScreen} />
+        <Stack.Screen name="AgencyReports" component={AgencyReportsScreen} />
+        <Stack.Screen name="AgencyStats" component={AgencyStatsScreen} />
+
+        {/* User Profile Module */}
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+        <Stack.Screen name="UserReports" component={UserReportsScreen} />
+        <Stack.Screen name="UserStats" component={UserStatsScreen} />
       </Stack.Group>
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  placeholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
+    padding: 20,
+  },
+  placeholderText: {
+    fontSize: 24,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  placeholderSubtext: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+});
 
 export default MainNavigator;

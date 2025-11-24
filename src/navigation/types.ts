@@ -1,19 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigatorScreenParams } from '@react-navigation/native';
 
-export type StudentTabParamList = {
-  HomePage: undefined;
-  MenuHocTap: undefined;
-  MenuHopDong: undefined;
-  MenuTrungTam: undefined;
-  Profile: undefined;
-};
-
-export type ParentTabParamList = {
-  ParentHomePage: undefined;
-  MenuCon: undefined;
-  MenuHopDong: undefined;
-  MenuTrungTam: undefined;
+export type MainTabParamList = {
+  Home: undefined;
+  Map: undefined;
+  Reports: undefined;
+  Wallet: undefined;
   Profile: undefined;
 };
 
@@ -23,52 +15,84 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
-  OTPVerification: { 
-    identifier: string; 
+  OTPVerification: {
+    identifier: string;
     type: 'phone' | 'email';
     flow?: 'register' | 'login' | 'forgot';
   };
-  StudentTabs: NavigatorScreenParams<StudentTabParamList>;
-  ParentTabs: NavigatorScreenParams<ParentTabParamList>;
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
   ChangePassword: undefined;
   UpdatePassword: {
     token: string;
   };
   EmailVerification: undefined;
   PhoneVerification: undefined;
-  ThoiKhoaBieu: undefined;
-  Assignment: undefined;
-  NopBaiTapVeNha: undefined;
-  NopBaiTapVeNhaDetail: undefined;
-  DiemBaiTap: undefined;
-  BangDiemToanKhoa: undefined;
-  BangDiemChiTiet: undefined;
-  TaiLieuHocTap: undefined;
-  ChiTietTaiLieu: undefined;
-  DanhGiaBuoiHoc: undefined;
-  WriteDanhGiaBuoiHoc: undefined;
-  NhanXetGiaoVien: undefined;
-  ChiTietNhanXetGiaoVien: undefined;
-  CamKetDauRa: undefined;
-  DiemDanhDiemThuong: undefined;
-  ChiTietDiemDanhDiemThuong: undefined;
-  HopDong: undefined;
-  HopDongDetails: undefined;
-  HoaDonHocPhi: undefined;
-  HoaDonHocPhiDetails: undefined;
-  DonXinVang: undefined;
-  WriteDonXinVang: undefined;
-  GuiYeuCauHoTro: undefined;
-  WriteGuiYeuCauHoTro: undefined;
-  ThongBao: undefined;
-  Base: undefined;
-  Test: undefined;
+  // Reports Module
+  ReportList: undefined;
+  ReportDetail: {
+    id: number;
+    reportId?: number; // Alternative parameter name
+  };
+  CreateReport: undefined;
+  EditReport: {
+    id: number;
+  };
+  MyReports: undefined;
+  NearbyReports: undefined;
+  TrendingReports: undefined;
+  // Comments Module
+  ReportComments: {
+    reportId: number;
+  };
+  // Map Module
+  MapReports: undefined;
+  MapHeatmap: undefined;
+  MapClusters: undefined;
+  MapRoutes: undefined;
+  // Wallet Module
+  WalletDetail: undefined;
+  WalletTransactions: undefined;
+  WalletRewards: undefined;
+  RedeemReward: {
+    rewardId: number;
+  };
+  // Notifications Module
+  Notifications: undefined;
+  NotificationSettings: undefined;
+  // Dashboard/Stats Module
+  Dashboard: undefined;
+  StatsOverview: undefined;
+  StatsCategories: undefined;
+  StatsTimeline: undefined;
+  Leaderboard: undefined;
+  CityStats: undefined;
+  // Agencies Module
+  AgencyList: undefined;
+  AgencyDetail: {
+    id: number;
+  };
+  AgencyReports: {
+    agencyId: number;
+  };
+  AgencyStats: {
+    agencyId: number;
+  };
+  // User Profile Module
+  UserProfile: {
+    userId: number;
+  };
+  UserReports: {
+    userId: number;
+  };
+  UserStats: {
+    userId: number;
+  };
 };
 
 export type StackScreen<T extends keyof RootStackParamList> = React.FC<NativeStackScreenProps<RootStackParamList, T>>;
 
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }
