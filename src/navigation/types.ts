@@ -21,7 +21,6 @@ export type RootStackParamList = {
   Loading: undefined;
   Onboarding: undefined;
   Login: undefined;
-  LoginParent: undefined;
   Register: undefined;
   ForgotPassword: undefined;
   OTPVerification: { 

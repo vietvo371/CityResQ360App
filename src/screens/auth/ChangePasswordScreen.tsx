@@ -77,39 +77,47 @@ const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({ navigation,
 
     setLoading(true);
     try {
+      // CityResQ360 API format - theo API docs
       const response = await api.post('/auth/reset-password', {
-        username: identifier,
-        type: type,
+        email: identifier,
         token: token,
-        password: newPassword,
-        re_password: confirmPassword,
+        mat_khau: newPassword,
+        mat_khau_confirmation: confirmPassword,
       });
 
-      console.log('Change password response:', response.data);
+      console.log('Reset password response:', response.data);
       
-      if (response.data.status) {
+      // Response format: { success: true, message: "..." }
+      if (response.data.success) {
         Alert.alert(
-          t('common.success'),
-          t('changePassword.passwordChanged'),
+          'Thành công',
+          response.data.message || 'Mật khẩu đã được đặt lại thành công',
           [
             {
-              text: t('common.confirm'),
+              text: 'Xác nhận',
               onPress: () => navigation.navigate('Login'),
             },
           ]
         );
       } else {
-        Alert.alert(t('common.error'), response.data.message || t('changePassword.passwordChangeFailed'));
+        Alert.alert('Lỗi', response.data.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.');
       }
     } catch (error: any) {
-      console.log('Change password error:', error);
-      let errorMessage = t('changePassword.passwordChangeFailed');
-      if (error.response?.data?.message) {
+      console.log('Reset password error:', error);
+      let errorMessage = 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
+      
+      if (error.response?.data?.errors) {
+        // Handle validation errors
+        const errors = error.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        errorMessage = Array.isArray(firstError) ? firstError[0] : String(firstError);
+      } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      Alert.alert(t('common.error'), errorMessage);
+      
+      Alert.alert('Lỗi', errorMessage);
     } finally {
       setLoading(false);
     }

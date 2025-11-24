@@ -9,7 +9,6 @@ import { RootStackParamList, StudentTabParamList, ParentTabParamList } from './t
 // Auth flow screens
 import LoadingScreen from '../screens/auth/LoadingScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
-import LoginParent from '../screens/auth/LoginParent';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import OTPVerificationScreen from '../screens/auth/OTPVerificationScreen';
@@ -246,7 +245,6 @@ const MainNavigator = () => {
       <Stack.Group>
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="LoginParent" component={LoginParent} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />

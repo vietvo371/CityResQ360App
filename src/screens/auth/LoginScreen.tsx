@@ -38,19 +38,21 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { validateLogin, signIn } = useAuth();
   const { t, getCurrentLanguage } = useTranslation();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string, password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string, password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   const validateForm = () => {
-    const newErrors: { username?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string } = {};
 
-    // Validate username
-    if (!username.trim()) {
-      newErrors.username = 'Vui lòng nhập tên đăng nhập';
+    // Validate email
+    if (!email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email không hợp lệ';
     }
 
     // Validate password
@@ -71,46 +73,36 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // const result = await signIn({
-      //   identifier,
-      //   password,
-      //   type: isPhoneNumber ? 'phone' : 'email',
-      // });
-      navigation.navigate('StudentTabs');
+      // Call signIn from AuthContext - CityResQ360 API format
+      const result = await signIn({
+        identifier: email,
+        password: password,
+        type: 'email',
+      });
 
-      // if (result.success) {
-      //   // Login successful - navigate to main tabs
-      //   navigation.navigate('StudentTabs');
-      // } else if (result.needsEmailVerification) {
-      //   // Email not verified - show alert and navigate to OTP verification
-      //   AlertService.warning(
-      //     t('auth.verifyEmailRequired') || 'Email chưa được xác thực',
-      //     result.error || t('auth.verifyEmailToContinue') || 'Email của bạn chưa được xác thực. Vui lòng xác thực để tiếp tục.',
-      //     [
-      //       {
-      //         text: t('common.confirm'),
-      //         onPress: () => navigation.navigate('OTPVerification', {
-      //           identifier: result.identifier || identifier,
-      //           type: 'email',
-      //           flow: 'register',
-      //         }),
-      //       },
-      //       {
-      //         text: t('common.cancel'),
-      //         style: 'cancel',
-      //       },
-      //     ]
-      //   );
-      // } else {
-      //   if (result.errors) {
-      //     setErrors(result.errors);
-      //   } else if (result.error) {
-      //     AlertService.error(t('auth.loginFailed'), result.error);
-      //   }
-      // }
+      if (result.success) {
+        // Login successful - navigate to main tabs
+        // TODO: Navigate based on user role (citizen/government)
+        navigation.navigate('StudentTabs');
+      } else {
+        // Handle errors
+        if (result.errors) {
+          // Map identifier error to email field
+          const mappedErrors: { email?: string; password?: string } = {};
+          if (result.errors.identifier) {
+            mappedErrors.email = result.errors.identifier;
+          }
+          if (result.errors.password) {
+            mappedErrors.password = result.errors.password;
+          }
+          setErrors(mappedErrors);
+        } else if (result.error) {
+          AlertService.error('Đăng nhập thất bại', result.error);
+        }
+      }
     } catch (error: any) {
       console.log('Login error:', error);
-      AlertService.error(t('auth.loginFailed'), error.message || 'Login failed. Please try again.');
+      AlertService.error('Đăng nhập thất bại', error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -175,11 +167,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               style={styles.welcomeText}
               entering={FadeInDown.duration(800).delay(200).springify()}
             >
-              {t('auth.welcomeBack')}
+              Chào mừng đến với
             </Animated.Text>
 
             <Animated.Image
-              source={require('../../assets/images/logo_wise.png')}
+              source={require('../../assets/images/logo_text.png')}
               style={styles.logoImage}
               resizeMode="contain"
               entering={FadeInDown.duration(800).delay(400).springify()}
@@ -192,22 +184,23 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             entering={SlideInDown.duration(800).delay(800).springify()}
           >
             <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>{t('auth.signIn')}</Text>
+              <Text style={styles.formTitle}>Đăng nhập</Text>
               <Text style={styles.formSubtitle}>
-                {t('auth.signInToAccount') || 'Sign in to start your environmental journey'}
+                Đăng nhập để báo cáo và theo dõi sự cố đô thị
               </Text>
             </View>
 
             <View style={styles.form}>
               <InputCustom
-                label="Tên đăng nhập"
-                placeholder="Nhập tên đăng nhập"
-                value={username}
-                onChangeText={setUsername}
+                label="Email"
+                placeholder="Nhập địa chỉ email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
                 autoCapitalize="none"
-                error={errors.username}
+                error={errors.email}
                 required
-                leftIcon="account-outline"
+                leftIcon="email-outline"
                 containerStyle={styles.input}
               />
               <InputCustom
@@ -225,7 +218,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               />
 
               <ButtonCustom
-                title={t('auth.signIn')}
+                title="Đăng nhập"
                 onPress={handleLogin}
                 style={styles.loginButton}
                 icon="login"
@@ -236,7 +229,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 onPress={() => navigation.navigate('ForgotPassword')}
                 style={styles.forgotPasswordContainer}
               >
-                <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+                <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
               </TouchableOpacity>
 
               {/* Social Login */}
@@ -276,12 +269,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             entering={FadeInUp.duration(600).delay(1200).springify()}
           >
             <TouchableOpacity
-              onPress={() => navigation.navigate('LoginParent')}
+              onPress={() => navigation.navigate('Register')}
               style={styles.registerLink}
             >
               <Text style={styles.registerText}>
-                Bạn là phụ huynh?{' '}
-                <Text style={styles.registerLinkText}>Đăng nhập tại đây</Text>
+                Chưa có tài khoản?{' '}
+                <Text style={styles.registerLinkText}>Đăng ký ngay</Text>
               </Text>
             </TouchableOpacity>
 
@@ -291,14 +284,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.securityBadge}>
               <Icon name="shield-check" size={ICON_SIZE.xs} color={theme.colors.primary} />
               <Text style={styles.securityText}>
-                {t('auth.dataProtected')}
+                Dữ liệu được bảo mật và mã hóa
               </Text>
             </View>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <LoadingOverlay visible={loading} message={t('auth.signingIn')} />
+      <LoadingOverlay visible={loading} message="Đang đăng nhập..." />
     </SafeAreaView>
   );
 };
@@ -406,6 +399,22 @@ const styles = StyleSheet.create({
     width: wp('50%'),
     height: hp('8%'),
     marginBottom: SPACING.md,
+  },
+  appTitle: {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: FONT_SIZE['4xl'],
+    color: theme.colors.primary,
+    marginBottom: SPACING.xs,
+    fontWeight: theme.typography.fontWeight.bold,
+    textAlign: 'center',
+  },
+  appSubtitle: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    lineHeight: FONT_SIZE.md * 1.4,
   },
   title: {
     fontFamily: theme.typography.fontFamily,
@@ -586,7 +595,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   registerLinkText: {
-    color: theme.colors.textSecondary,
+    color: theme.colors.primary,
     fontFamily: theme.typography.fontFamily,
     fontWeight: theme.typography.fontWeight.semibold,
     textDecorationLine: 'underline',

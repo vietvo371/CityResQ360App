@@ -6,158 +6,149 @@ import api from '../utils/Api';
 import { saveToken, saveUser } from '../utils/TokenManager';
 
 // ============================================================================
-// TYPES - GreenEduMap User Roles & Data Structures
+// TYPES - CityResQ360 User Roles & Data Structures
 // ============================================================================
 
 /**
- * User roles in GreenEduMap ecosystem
- * - citizen: Public users monitoring their environmental impact
- * - student: Students learning about environmental science
- * - teacher: Educators creating/managing educational content
- * - urban_manager: City planners and urban management officials
- * - researcher: Environmental researchers and scientists
- * - business: Green businesses and organizations
- * - verifier: Environmental data verifiers
- * - government: Government officials and policy makers
+ * User roles in CityResQ360 ecosystem
+ * - citizen: Người dân báo cáo sự cố đô thị
+ * - government: Cán bộ chính quyền xử lý sự cố
+ * - admin: Quản trị viên hệ thống
+ * - ai_system: Hệ thống AI phân tích và phân loại sự cố
+ * - emergency_responder: Đội ứng cứu khẩn cấp
+ * - maintenance_team: Đội bảo trì cơ sở hạ tầng
  */
 type UserRole = 
   | 'citizen' 
-  | 'student' 
-  | 'teacher' 
-  | 'urban_manager' 
-  | 'researcher' 
-  | 'business' 
-  | 'verifier' 
-  | 'government';
+  | 'government' 
+  | 'admin' 
+  | 'ai_system' 
+  | 'emergency_responder' 
+  | 'maintenance_team';
 
 /**
- * Environmental monitoring preferences
+ * CityResQ360 notification preferences
  */
-interface EnvironmentalPreferences {
-  // Air Quality Monitoring
-  airQualityAlerts: boolean;
-  airQualityThreshold: 'good' | 'moderate' | 'unhealthy' | 'very_unhealthy';
+interface NotificationPreferences {
+  // Incident Alerts
+  incidentAlerts: boolean;
+  emergencyAlerts: boolean;
+  maintenanceUpdates: boolean;
   
-  // Weather Monitoring
-  weatherAlerts: boolean;
-  temperatureUnit: 'celsius' | 'fahrenheit';
+  // Location-based notifications
+  nearbyIncidents: boolean;
+  locationRadius: number; // km
   
-  // Data Sources
-  enabledDataSources: {
-    openAQ: boolean;      // Air quality data
-    openWeather: boolean; // Weather data
-    nasaPower: boolean;   // NASA POWER solar/energy data
-    openStreetMap: boolean; // Map data
-  };
+  // Report status updates
+  reportStatusUpdates: boolean;
+  governmentResponses: boolean;
   
-  // Location Preferences
-  monitoringLocations: Array<{
-    id: string;
-    name: string;
-    latitude: number;
-    longitude: number;
-    isPrimary: boolean;
-  }>;
-  
-  // Notification preferences
-  notifyOnPoorAirQuality: boolean;
-  notifyOnWeatherAlerts: boolean;
-  notifyOnEnvironmentalNews: boolean;
+  // Community updates
+  communityUpdates: boolean;
+  systemAnnouncements: boolean;
 }
 
 /**
- * Green Action tracking
+ * Incident Report tracking
  */
-interface GreenAction {
+interface IncidentReport {
   id: string;
-  type: 'transport' | 'energy' | 'waste' | 'water' | 'food' | 'education' | 'community';
+  type: 'infrastructure' | 'environment' | 'safety' | 'traffic' | 'utilities' | 'emergency';
   title: string;
   description: string;
-  carbonSaved: number; // in kg CO2
-  completedAt: Date;
-  verificationMethod?: 'self' | 'verified' | 'ai_verified';
+  location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  reportedAt: Date;
+  updatedAt: Date;
+  images?: string[];
+  assignedTo?: string;
+  resolvedAt?: Date;
 }
 
 /**
- * User's environmental impact data
+ * User's civic engagement data
  */
-interface EnvironmentalImpact {
-  // Carbon Footprint
-  totalCarbonSaved: number; // Total kg CO2 saved
-  monthlyCarbon: number;
-  dailyCarbon: number;
+interface CivicEngagement {
+  // Report Statistics
+  totalReports: number;
+  resolvedReports: number;
+  pendingReports: number;
   
-  // Green Actions
-  completedActions: GreenAction[];
-  totalActionsCount: number;
+  // User Reports
+  userReports: IncidentReport[];
   
-  // Rankings & Achievements
+  // Community Impact
   communityRank: number;
-  totalPoints: number;
+  civicPoints: number;
   badges: Array<{
     id: string;
     name: string;
     icon: string;
     earnedAt: Date;
+    description: string;
   }>;
   
-  // Streaks
-  currentStreak: number; // Days of consecutive green actions
-  longestStreak: number;
+  // Engagement Metrics
+  responseRate: number; // How often government responds to user's reports
+  resolutionTime: number; // Average time to resolve user's reports (in hours)
+  communityHelpful: number; // How many users found this user's reports helpful
 }
 
 /**
- * Educational progress for students
+ * Government response tracking
  */
-interface EducationalProgress {
-  // Completed courses/modules
-  completedCourses: Array<{
-    id: string;
-    title: string;
-    category: 'environmental_science' | 'climate_change' | 'renewable_energy' | 'sustainability';
-    completedAt: Date;
-    score: number;
-  }>;
+interface GovernmentActivity {
+  // Assigned incidents
+  assignedIncidents: IncidentReport[];
   
-  // Quiz results
-  quizResults: Array<{
-    id: string;
-    title: string;
-    score: number;
-    completedAt: Date;
-  }>;
+  // Response metrics
+  totalAssigned: number;
+  totalResolved: number;
+  averageResponseTime: number; // in hours
   
-  // Learning stats
-  totalLearningHours: number;
+  // Performance stats
   currentLevel: number;
-  experiencePoints: number;
+  performanceScore: number;
+  citizenSatisfactionRating: number;
+  
+  // Department info
+  department: string;
+  jurisdiction: string[];
 }
 
 /**
- * Data insights & AI recommendations
+ * AI insights & city analytics
  */
 interface AIInsights {
-  // Personalized recommendations
-  recommendedActions: Array<{
+  // Incident predictions
+  predictedIncidents: Array<{
     id: string;
-    title: string;
-    description: string;
-    potentialCarbonSavings: number;
-    difficulty: 'easy' | 'medium' | 'hard';
-    category: string;
+    type: string;
+    location: string;
+    probability: number;
+    timeframe: string;
+    preventiveMeasures: string[];
   }>;
   
-  // Environmental trends for user's location
-  localTrends: {
-    airQualityTrend: 'improving' | 'stable' | 'worsening';
-    weatherPattern: string;
-    environmentalRisk: 'low' | 'medium' | 'high';
+  // City trends
+  cityTrends: {
+    incidentTrend: 'improving' | 'stable' | 'worsening';
+    mostCommonIssues: string[];
+    responseEfficiency: 'excellent' | 'good' | 'needs_improvement';
+    citizenSatisfaction: number;
   };
   
-  // Community insights
-  communityHighlights: Array<{
+  // Smart recommendations
+  recommendations: Array<{
     message: string;
-    type: 'achievement' | 'alert' | 'tip';
+    type: 'prevention' | 'optimization' | 'alert' | 'maintenance';
+    priority: 'low' | 'medium' | 'high';
+    targetAudience: UserRole[];
   }>;
 }
 
@@ -203,16 +194,16 @@ interface AuthContextData {
   signOut: () => Promise<void>;
   verifyEkyc: (data: EkycVerifyRequest) => Promise<EkycVerifyResponse>;
   
-  // GreenEduMap Specific Features
-  environmentalPreferences: EnvironmentalPreferences;
-  updateEnvironmentalPreferences: (preferences: Partial<EnvironmentalPreferences>) => Promise<void>;
+  // CityResQ360 Specific Features
+  notificationPreferences: NotificationPreferences;
+  updateNotificationPreferences: (preferences: Partial<NotificationPreferences>) => Promise<void>;
   
-  environmentalImpact: EnvironmentalImpact | null;
-  loadEnvironmentalImpact: () => Promise<void>;
-  addGreenAction: (action: Omit<GreenAction, 'id' | 'completedAt'>) => Promise<void>;
+  civicEngagement: CivicEngagement | null;
+  loadCivicEngagement: () => Promise<void>;
+  submitIncidentReport: (report: Omit<IncidentReport, 'id' | 'reportedAt' | 'updatedAt' | 'status'>) => Promise<void>;
   
-  educationalProgress: EducationalProgress | null;
-  loadEducationalProgress: () => Promise<void>;
+  governmentActivity: GovernmentActivity | null;
+  loadGovernmentActivity: () => Promise<void>;
   
   aiInsights: AIInsights | null;
   refreshAIInsights: () => Promise<void>;
@@ -225,21 +216,16 @@ interface AuthContextData {
 // DEFAULT VALUES
 // ============================================================================
 
-const DEFAULT_ENVIRONMENTAL_PREFERENCES: EnvironmentalPreferences = {
-  airQualityAlerts: true,
-  airQualityThreshold: 'moderate',
-  weatherAlerts: true,
-  temperatureUnit: 'celsius',
-  enabledDataSources: {
-    openAQ: true,
-    openWeather: true,
-    nasaPower: true,
-    openStreetMap: true,
-  },
-  monitoringLocations: [],
-  notifyOnPoorAirQuality: true,
-  notifyOnWeatherAlerts: true,
-  notifyOnEnvironmentalNews: true,
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  incidentAlerts: true,
+  emergencyAlerts: true,
+  maintenanceUpdates: true,
+  nearbyIncidents: true,
+  locationRadius: 5, // 5km radius
+  reportStatusUpdates: true,
+  governmentResponses: true,
+  communityUpdates: true,
+  systemAnnouncements: true,
 };
 
 // ============================================================================
@@ -252,12 +238,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // GreenEduMap specific state
-  const [environmentalPreferences, setEnvironmentalPreferences] = useState<EnvironmentalPreferences>(
-    DEFAULT_ENVIRONMENTAL_PREFERENCES
+  // CityResQ360 specific state
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(
+    DEFAULT_NOTIFICATION_PREFERENCES
   );
-  const [environmentalImpact, setEnvironmentalImpact] = useState<EnvironmentalImpact | null>(null);
-  const [educationalProgress, setEducationalProgress] = useState<EducationalProgress | null>(null);
+  const [civicEngagement, setCivicEngagement] = useState<CivicEngagement | null>(null);
+  const [governmentActivity, setGovernmentActivity] = useState<GovernmentActivity | null>(null);
   const [aiInsights, setAIInsights] = useState<AIInsights | null>(null);
 
   // ============================================================================
@@ -271,9 +257,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initializeApp = async () => {
     try {
       await loadStoredUser();
-      await loadEnvironmentalPreferences();
-      await loadEnvironmentalImpact();
-      await loadEducationalProgress();
+      await loadNotificationPreferences();
+      await loadCivicEngagement();
+      await loadGovernmentActivity();
       await refreshAIInsights();
     } catch (error) {
       console.log('Error initializing app:', error);
@@ -336,52 +322,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Login attempt:', credentials.identifier);
       console.log('Login type:', credentials.type);
 
-      // Call the API
+      // Call the API - CityResQ360 API format
       const response = await api.post('/auth/login', {
-        username: credentials.identifier,
-        password: credentials.password,
-        type: credentials.type,
+        email: credentials.identifier,
+        mat_khau: credentials.password,
+        remember: true,
       });
 
       console.log('Login response:', response.data);
 
-      // Handle API response
-      if (response.data.status === false) {
-        // If account email is not activated yet
-        if (response.data.is_active_mail === false) {
-          return {
-            success: false,
-            needsEmailVerification: true,
-            identifier: credentials.identifier,
-            error: response.data.message || 'Email chưa được xác thực. Vui lòng xác thực để tiếp tục.',
-          };
-        } else {
-          // Other errors
-          return {
-            success: false,
-            error: response.data.message || 'Login failed',
-            errors: {
-              identifier: response.data.message,
-            },
-          };
-        }
+      // Handle API response - CityResQ360 format
+      if (!response.data.success) {
+        return {
+          success: false,
+          error: response.data.message || 'Đăng nhập thất bại',
+          errors: {
+            identifier: response.data.message || 'Email hoặc mật khẩu không đúng',
+          },
+        };
       }
 
       // Login successful
       console.log('Login successful:', response.data.data);
       
-      // Save user and token
-      await saveUser(response.data.data);
-      await saveToken(response.data.token);
+      // Save user and token - CityResQ360 format
+      await saveUser(response.data.data.user);
+      await saveToken(response.data.data.token);
       
       // Update context state
-      setUser(response.data.data);
+      setUser(response.data.data.user);
       
-      // Load user's environmental data after sign in
+      // Load user's CityResQ360 data after sign in
       await Promise.all([
-        loadEnvironmentalPreferences(),
-        loadEnvironmentalImpact(),
-        loadEducationalProgress(),
+        loadNotificationPreferences(),
+        loadCivicEngagement(),
+        loadGovernmentActivity(),
         refreshAIInsights(),
       ]);
 
@@ -421,7 +396,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authApi.signUp(userData);
       // Initialize default preferences for new users
-      await saveEnvironmentalPreferences(DEFAULT_ENVIRONMENTAL_PREFERENCES);
+      await saveNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
     } catch (error: any) {
       console.log('Sign up error:', error);
       throw error;
@@ -433,17 +408,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authApi.signOut();
       setUser(null);
       
-      // Clear GreenEduMap data
-      setEnvironmentalPreferences(DEFAULT_ENVIRONMENTAL_PREFERENCES);
-      setEnvironmentalImpact(null);
-      setEducationalProgress(null);
+      // Clear CityResQ360 data
+      setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
+      setCivicEngagement(null);
+      setGovernmentActivity(null);
       setAIInsights(null);
       
       // Clear AsyncStorage
       await AsyncStorage.multiRemove([
-        '@environmental_preferences',
-        '@environmental_impact',
-        '@educational_progress',
+        '@notification_preferences',
+        '@civic_engagement',
+        '@government_activity',
         '@ai_insights',
       ]);
     } catch (error: any) {
@@ -462,133 +437,138 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ============================================================================
-  // ENVIRONMENTAL PREFERENCES
+  // NOTIFICATION PREFERENCES
   // ============================================================================
 
-  const loadEnvironmentalPreferences = async () => {
+  const loadNotificationPreferences = async () => {
     try {
-      const stored = await AsyncStorage.getItem('@environmental_preferences');
+      const stored = await AsyncStorage.getItem('@notification_preferences');
       if (stored) {
-        setEnvironmentalPreferences(JSON.parse(stored));
+        setNotificationPreferences(JSON.parse(stored));
       }
     } catch (error) {
-      console.log('Error loading environmental preferences:', error);
+      console.log('Error loading notification preferences:', error);
     }
   };
 
-  const saveEnvironmentalPreferences = async (prefs: EnvironmentalPreferences) => {
+  const saveNotificationPreferences = async (prefs: NotificationPreferences) => {
     try {
-      await AsyncStorage.setItem('@environmental_preferences', JSON.stringify(prefs));
+      await AsyncStorage.setItem('@notification_preferences', JSON.stringify(prefs));
     } catch (error) {
-      console.log('Error saving environmental preferences:', error);
+      console.log('Error saving notification preferences:', error);
     }
   };
 
-  const updateEnvironmentalPreferences = async (preferences: Partial<EnvironmentalPreferences>) => {
+  const updateNotificationPreferences = async (preferences: Partial<NotificationPreferences>) => {
     try {
-      const updated = { ...environmentalPreferences, ...preferences };
-      setEnvironmentalPreferences(updated);
-      await saveEnvironmentalPreferences(updated);
+      const updated = { ...notificationPreferences, ...preferences };
+      setNotificationPreferences(updated);
+      await saveNotificationPreferences(updated);
       
       // TODO: Sync with backend API
-      // await authApi.updateEnvironmentalPreferences(updated);
+      // await authApi.updateNotificationPreferences(updated);
     } catch (error) {
-      console.log('Error updating environmental preferences:', error);
+      console.log('Error updating notification preferences:', error);
       throw error;
     }
   };
 
   // ============================================================================
-  // ENVIRONMENTAL IMPACT TRACKING
+  // CIVIC ENGAGEMENT TRACKING
   // ============================================================================
 
-  const loadEnvironmentalImpact = async () => {
+  const loadCivicEngagement = async () => {
     try {
-      const stored = await AsyncStorage.getItem('@environmental_impact');
+      const stored = await AsyncStorage.getItem('@civic_engagement');
       if (stored) {
-        setEnvironmentalImpact(JSON.parse(stored));
+        setCivicEngagement(JSON.parse(stored));
       } else {
-        // Initialize default impact data
-        const defaultImpact: EnvironmentalImpact = {
-          totalCarbonSaved: 0,
-          monthlyCarbon: 0,
-          dailyCarbon: 0,
-          completedActions: [],
-          totalActionsCount: 0,
+        // Initialize default civic engagement data
+        const defaultEngagement: CivicEngagement = {
+          totalReports: 0,
+          resolvedReports: 0,
+          pendingReports: 0,
+          userReports: [],
           communityRank: 0,
-          totalPoints: 0,
+          civicPoints: 0,
           badges: [],
-          currentStreak: 0,
-          longestStreak: 0,
+          responseRate: 0,
+          resolutionTime: 0,
+          communityHelpful: 0,
         };
-        setEnvironmentalImpact(defaultImpact);
+        setCivicEngagement(defaultEngagement);
       }
       
       // TODO: Fetch from backend
-      // const impact = await authApi.getEnvironmentalImpact();
-      // setEnvironmentalImpact(impact);
+      // const engagement = await authApi.getCivicEngagement();
+      // setCivicEngagement(engagement);
     } catch (error) {
-      console.log('Error loading environmental impact:', error);
+      console.log('Error loading civic engagement:', error);
     }
   };
 
-  const addGreenAction = async (action: Omit<GreenAction, 'id' | 'completedAt'>) => {
+  const submitIncidentReport = async (report: Omit<IncidentReport, 'id' | 'reportedAt' | 'updatedAt' | 'status'>) => {
     try {
-      const newAction: GreenAction = {
-        ...action,
+      const newReport: IncidentReport = {
+        ...report,
         id: Date.now().toString(),
-        completedAt: new Date(),
+        reportedAt: new Date(),
+        updatedAt: new Date(),
+        status: 'pending',
       };
       
-      const updatedImpact = {
-        ...environmentalImpact!,
-        completedActions: [...(environmentalImpact?.completedActions || []), newAction],
-        totalActionsCount: (environmentalImpact?.totalActionsCount || 0) + 1,
-        totalCarbonSaved: (environmentalImpact?.totalCarbonSaved || 0) + action.carbonSaved,
-        dailyCarbon: (environmentalImpact?.dailyCarbon || 0) + action.carbonSaved,
-        totalPoints: (environmentalImpact?.totalPoints || 0) + Math.floor(action.carbonSaved * 10),
+      const updatedEngagement = {
+        ...civicEngagement!,
+        userReports: [...(civicEngagement?.userReports || []), newReport],
+        totalReports: (civicEngagement?.totalReports || 0) + 1,
+        pendingReports: (civicEngagement?.pendingReports || 0) + 1,
+        civicPoints: (civicEngagement?.civicPoints || 0) + 10,
       };
       
-      setEnvironmentalImpact(updatedImpact);
-      await AsyncStorage.setItem('@environmental_impact', JSON.stringify(updatedImpact));
+      setCivicEngagement(updatedEngagement);
+      await AsyncStorage.setItem('@civic_engagement', JSON.stringify(updatedEngagement));
       
       // TODO: Sync with backend
-      // await authApi.addGreenAction(newAction);
+      // await authApi.submitIncidentReport(newReport);
       
-      // Refresh AI insights after adding action
+      // Refresh AI insights after submitting report
       await refreshAIInsights();
     } catch (error) {
-      console.log('Error adding green action:', error);
+      console.log('Error submitting incident report:', error);
       throw error;
     }
   };
 
   // ============================================================================
-  // EDUCATIONAL PROGRESS
+  // GOVERNMENT ACTIVITY TRACKING
   // ============================================================================
 
-  const loadEducationalProgress = async () => {
+  const loadGovernmentActivity = async () => {
     try {
-      const stored = await AsyncStorage.getItem('@educational_progress');
+      const stored = await AsyncStorage.getItem('@government_activity');
       if (stored) {
-        setEducationalProgress(JSON.parse(stored));
+        setGovernmentActivity(JSON.parse(stored));
       } else {
-        // Initialize default progress
-        const defaultProgress: EducationalProgress = {
-          completedCourses: [],
-          quizResults: [],
-          totalLearningHours: 0,
+        // Initialize default government activity data
+        const defaultActivity: GovernmentActivity = {
+          assignedIncidents: [],
+          totalAssigned: 0,
+          totalResolved: 0,
+          averageResponseTime: 0,
           currentLevel: 1,
-          experiencePoints: 0,
+          performanceScore: 0,
+          citizenSatisfactionRating: 0,
+          department: '',
+          jurisdiction: [],
         };
-        setEducationalProgress(defaultProgress);
+        setGovernmentActivity(defaultActivity);
       }
       
       // TODO: Fetch from backend
-      // const progress = await authApi.getEducationalProgress();
-      // setEducationalProgress(progress);
+      // const activity = await authApi.getGovernmentActivity();
+      // setGovernmentActivity(activity);
     } catch (error) {
-      console.log('Error loading educational progress:', error);
+      console.log('Error loading government activity:', error);
     }
   };
 
@@ -601,33 +581,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // TODO: Fetch real AI insights from backend
       // For now, generate mock insights based on user data
       const mockInsights: AIInsights = {
-        recommendedActions: [
+        predictedIncidents: [
           {
             id: '1',
-            title: 'Use Public Transport Today',
-            description: 'Taking the bus instead of driving can save 2.3kg CO2',
-            potentialCarbonSavings: 2.3,
-            difficulty: 'easy',
-            category: 'transport',
-          },
-          {
-            id: '2',
-            title: 'Reduce Plastic Usage',
-            description: 'Bring reusable bags to the market',
-            potentialCarbonSavings: 0.5,
-            difficulty: 'easy',
-            category: 'waste',
+            type: 'infrastructure',
+            location: 'Quận 1',
+            probability: 0.75,
+            timeframe: 'Trong 7 ngày tới',
+            preventiveMeasures: ['Kiểm tra đường ống nước', 'Bảo trì định kỳ'],
           },
         ],
-        localTrends: {
-          airQualityTrend: 'improving',
-          weatherPattern: 'Sunny week ahead',
-          environmentalRisk: 'low',
+        cityTrends: {
+          incidentTrend: 'stable',
+          mostCommonIssues: ['Đường xá hư hỏng', 'Cống rãnh tắc nghẽn', 'Đèn đường hỏng'],
+          responseEfficiency: 'good',
+          citizenSatisfaction: 4.2,
         },
-        communityHighlights: [
+        recommendations: [
           {
-            message: 'Your neighborhood saved 150kg CO2 this week!',
-            type: 'achievement',
+            message: 'Tăng cường bảo trì đường xá ở khu vực trung tâm',
+            type: 'prevention',
+            priority: 'high',
+            targetAudience: ['government', 'maintenance_team'],
           },
         ],
       };
@@ -682,16 +657,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         verifyEkyc,
         
-        // GreenEduMap Features
-        environmentalPreferences,
-        updateEnvironmentalPreferences,
+        // CityResQ360 Features
+        notificationPreferences,
+        updateNotificationPreferences,
         
-        environmentalImpact,
-        loadEnvironmentalImpact,
-        addGreenAction,
+        civicEngagement,
+        loadCivicEngagement,
+        submitIncidentReport,
         
-        educationalProgress,
-        loadEducationalProgress,
+        governmentActivity,
+        loadGovernmentActivity,
         
         aiInsights,
         refreshAIInsights,
@@ -724,10 +699,10 @@ export function useAuth(): AuthContextData {
 
 export type {
   UserRole,
-  EnvironmentalPreferences,
-  GreenAction,
-  EnvironmentalImpact,
-  EducationalProgress,
+  NotificationPreferences,
+  IncidentReport,
+  CivicEngagement,
+  GovernmentActivity,
   AIInsights,
   AuthContextData,
 };

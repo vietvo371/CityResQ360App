@@ -96,7 +96,7 @@ const getCurrentLocation = (): Promise<LocationData | null> => {
 };
 
 
-const baseUrl = env.API_URL + '/api';
+const baseUrl = env.API_URL + '/api/v1';
 
 const api = axios.create({
   baseURL: baseUrl,

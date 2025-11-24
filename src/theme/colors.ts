@@ -2,13 +2,13 @@ import { Platform } from 'react-native';
 
 /**
  * Color System - WISE English LMS
- * Primary brand color:rgb(131, 59, 225) (Purple) - Fintech Style
+ * Primary brand color: #0d90d1 (Blue) - Fintech Style
  */
 export const COLORS = {
   // Brand Colors
-  primary: '#7e2a86',
-  primaryLight: '#B87CFF',
-  primaryDark: '#7A2FE6',
+  primary: '#0d90d1',
+  primaryLight: '#4db8e8',
+  primaryDark: '#0a6fa8',
   secondary: '#00D4FF',
   accent: '#FFD700',
   
@@ -58,7 +58,7 @@ export const COLORS = {
   overlayLight: 'rgba(0, 0, 0, 0.3)',
   
   // Gradients
-  gradientPrimary: ['#9747FF', '#B87CFF'],
+  gradientPrimary: ['#0d90d1', '#4db8e8'],
   gradientSecondary: ['#00D4FF', '#0EA5E9'],
   gradientDark: ['#1A1A1A', '#2D2D2D'],
 };

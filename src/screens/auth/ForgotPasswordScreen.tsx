@@ -34,17 +34,19 @@ interface ForgotPasswordScreenProps {
 }
 
 const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
-  const { t, getCurrentLanguage } = useTranslation();
-  const [username, setUsername] = useState('');
+  const { getCurrentLanguage } = useTranslation();
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string }>({});
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   const validateForm = () => {
-    const newErrors: { username?: string } = {};
+    const newErrors: { email?: string } = {};
 
-    if (!username.trim()) {
-      newErrors.username = 'Vui lòng nhập tên đăng nhập hoặc email';
+    if (!email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email không hợp lệ';
     }
 
     setErrors(newErrors);
@@ -56,45 +58,51 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
     if (!validateForm()) {
       return;
     }
-    console.log('Send OTP for forgot password with username:', username);
+    
     setLoading(true);
     try {
+      // CityResQ360 API format
       const response = await api.post('/auth/forgot-password', {
-        username,
-        type: 'username',
+        email: email,
       });
 
       console.log('Send OTP response:', response.data);
 
-      if (response.data.status) {
+      if (response.data.success) {
         navigation.navigate('OTPVerification', {
-          identifier: username,
-          type: 'username',
+          identifier: email,
+          type: 'email',
           flow: 'forgot',
-        })
+        });
       } else {
         setErrors({
-          username: response.data.message
+          email: response.data.message || 'Email không tồn tại trong hệ thống'
         });
       }
     } catch (error: any) {
+      console.log('Forgot password error:', error);
+      
       if (error.response?.data?.errors) {
         const newErrors: Record<string, string> = {};
         Object.keys(error.response.data.errors).forEach(field => {
-          newErrors[field] = error.response.data.errors[field][0];
+          // Map API field names to form field names
+          const mappedField = field === 'email' ? 'email' : field;
+          newErrors[mappedField] = Array.isArray(error.response.data.errors[field])
+            ? error.response.data.errors[field][0]
+            : error.response.data.errors[field];
         });
         setErrors(newErrors);
       } else if (error.response?.data?.message) {
         setErrors({
-          username: error.response.data.message
+          email: error.response.data.message
         });
       } else if (error.message) {
         setErrors({
-          username: error.message
+          email: error.message
         });
       } else {
         setErrors({
-          username: 'Failed to send OTP. Please try again.'
+          email: 'Không thể gửi mã xác thực. Vui lòng thử lại.'
         });
       }
     } finally {
@@ -169,10 +177,10 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             </View>
 
             <Text style={styles.title}>
-              {t('auth.forgotPasswordTitle')}
+              Quên mật khẩu?
             </Text>
             <Text style={styles.subtitle}>
-              {t('auth.forgotPasswordSubtitle')}
+              Nhập email để nhận mã xác thực đặt lại mật khẩu
             </Text>
           </Animated.View>
 
@@ -183,19 +191,20 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           >
             <View style={styles.form}>
               <InputCustom
-                label="Tên đăng nhập hoặc Email"
-                placeholder="Nhập tên đăng nhập hoặc email"
-                value={username}
-                onChangeText={setUsername}
+                label="Email"
+                placeholder="Nhập địa chỉ email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
                 autoCapitalize="none"
-                error={errors.username}
+                error={errors.email}
                 required
-                leftIcon="account-outline"
+                leftIcon="email-outline"
                 containerStyle={styles.input}
               />
 
               <ButtonCustom
-                title={t('auth.sendVerificationCode')}
+                title="Gửi mã xác thực"
                 onPress={handleSendOTPForgot}
                 style={styles.resetButton}
                 icon="send"
@@ -206,8 +215,8 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
                 style={styles.backToLoginContainer}
               >
                 <Text style={styles.backToLoginText}>
-                  {t('auth.rememberPassword')}{' '}
-                  <Text style={styles.backToLoginLinkText}>{t('auth.signInLink')}</Text>
+                  Nhớ mật khẩu?{' '}
+                  <Text style={styles.backToLoginLinkText}>Đăng nhập ngay</Text>
                 </Text>
               </TouchableOpacity>
             </View>
@@ -222,14 +231,14 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             <View style={styles.securityBadge}>
               <Icon name="shield-check" size={ICON_SIZE.xs} color={theme.colors.primary} />
               <Text style={styles.securityText}>
-                {t('auth.dataProtected')}
+                Dữ liệu được bảo mật và mã hóa
               </Text>
             </View>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <LoadingOverlay visible={loading} message={t('auth.sendingVerificationCode')} />
+      <LoadingOverlay visible={loading} message="Đang gửi mã xác thực..." />
     </SafeAreaView>
   );
 };
@@ -281,7 +290,7 @@ const styles = StyleSheet.create({
     width: wp('30%'),
     height: wp('30%'),
     borderRadius: wp('15%'),
-    backgroundColor: theme.colors.success + '15',
+    backgroundColor: theme.colors.primary + '15',
   },
   decorativeCircle2: {
     position: 'absolute',
@@ -290,7 +299,7 @@ const styles = StyleSheet.create({
     width: wp('24%'),
     height: wp('24%'),
     borderRadius: wp('12%'),
-    backgroundColor: theme.colors.info + '15',
+    backgroundColor: theme.colors.secondary + '15',
   },
   keyboardAvoidingView: {
     flex: 1,

@@ -15,26 +15,26 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const getOnboardingData = (t: any) => [
   {
     id: 1,
-    title: t('onboarding.welcomeTitle'),
-    description: t('onboarding.welcomeDescription'),
+    title: 'Chào mừng đến CityResQ360',
+    description: 'Hệ thống báo cáo và xử lý sự cố đô thị thông minh, kết nối người dân và chính quyền',
     image: require('../../assets/images/started/welcom.jpg'),
   },
   {
     id: 2,
-    title: t('onboarding.mapTitle'),
-    description: t('onboarding.mapDescription'),
+    title: 'Báo cáo sự cố dễ dàng',
+    description: 'Chụp ảnh, định vị và mô tả sự cố chỉ trong vài giây. Hệ thống sẽ tự động phân loại và chuyển đến cơ quan có thẩm quyền',
     image: require('../../assets/images/started/map.jpg'),
   },
   {
     id: 3,
-    title: t('onboarding.aiTitle'),
-    description: t('onboarding.aiDescription'),
+    title: 'AI hỗ trợ thông minh',
+    description: 'Trí tuệ nhân tạo phân tích và dự đoán sự cố, giúp tối ưu hóa quy trình xử lý và phòng ngừa',
     image: require('../../assets/images/started/AiGreen.jpg'),
   },
   {
     id: 4,
-    title: t('onboarding.communityTitle'),
-    description: t('onboarding.communityDescription'),
+    title: 'Cộng đồng kết nối',
+    description: 'Theo dõi tiến độ xử lý, đánh giá chất lượng dịch vụ và xây dựng thành phố thông minh cùng nhau',
     image: require('../../assets/images/started/community.jpg'),
   },
 ];

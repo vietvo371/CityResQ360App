@@ -7,31 +7,24 @@ import {
   Platform,
   ScrollView,
   SafeAreaView,
-  Dimensions,
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import DeepLinkHandler from '../../utils/DeepLinkHandler';
-import LinearGradient from 'react-native-linear-gradient';
 import Animated, { FadeInDown, FadeInUp, SlideInDown } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { theme } from '../../theme/colors';
-import Header from '../../component/Header';
+import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../../theme/responsive';
 import InputCustom from '../../component/InputCustom';
 import ButtonCustom from '../../component/ButtonCustom';
 import LoadingOverlay from '../../component/LoadingOverlay';
 import api from '../../utils/Api';
-import { useTranslation } from '../../hooks/useTranslation';
 
 interface RegisterScreenProps {
   navigation: any;
 }
 
-const { width, height } = Dimensions.get('window');
-
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
-  const { t } = useTranslation();
 
   const initialFormData = {
     name: '',
@@ -40,7 +33,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     address: '',
     password: '',
     re_password: '',
-    ref_code: '',
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -61,19 +53,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  useEffect(() => {
-    const checkPendingRefCode = async () => {
-      const code = await DeepLinkHandler.getPendingRefCode();
-      if (code) {
-        setFormData(prev => ({
-          ...prev,
-          ref_code: code
-        }));
-      }
-    };
-    
-    checkPendingRefCode();
-  }, []);
 
   const validateStep1 = () => {
     const emailError = validateField('email', formData.email);
@@ -107,7 +86,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
     const newErrors = {
       ...(passwordError ? { password: passwordError } : {}),
-      ...(rePasswordError ? { re_password: rePasswordError } : {})
+      ...(rePasswordError ? { re_password: rePasswordError } : {}),
     };
 
     setErrors(newErrors);
@@ -155,31 +134,33 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
     setLoading(true);
     try {
+      // CityResQ360 API format - theo API docs
       const response = await api.post('/auth/register', {
+        ho_ten: formData.name,
         email: formData.email,
-        number_phone: formData.phone,
-        full_name: formData.name,
-        address: formData.address || '',
-        password: formData.password,
-        re_password: formData.re_password,
-        ma_gioi_thieu: formData.ref_code || '', 
+        mat_khau: formData.password,
+        mat_khau_confirmation: formData.re_password,
+        so_dien_thoai: formData.phone,
       });
-      if (response.data.status === false) {
-        Alert.alert(t('auth.registrationFailed'), response.data.message);
+      
+      // Xử lý response theo API docs format
+      if (!response.data.success) {
+        Alert.alert('Đăng ký thất bại', response.data.message || 'Vui lòng thử lại');
         return;
       }
+      
       // Reset form before navigating
       resetForm();
       
-      Alert.alert(t('auth.registrationSuccessful'), response.data.message,
+      // Response format: { success: true, message: "...", data: { user: {...}, token: "..." } }
+      Alert.alert('Đăng ký thành công', response.data.message || 'Tài khoản của bạn đã được tạo thành công',
         [
           {
-            text: t('common.confirm'),
-            onPress: () => navigation.navigate('OTPVerification', {
-              identifier: formData.email,
-              type: 'email',
-              flow: 'register',
-            })
+            text: 'Xác nhận',
+            onPress: () => {
+              // Navigate to login sau khi đăng ký thành công
+              navigation.navigate('Login');
+            }
           }
         ]
       );
@@ -189,12 +170,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       if (error.response?.data?.errors) {
         const fieldMapping: Record<string, string> = {
           email: 'email',
-          number_phone: 'number_phone',
-          full_name: 'full_name',
-          address: 'address',
-          password: 'password',
-          re_password: 're_password',
-          ma_gioi_thieu: 'ref_code' 
+          so_dien_thoai: 'number_phone',
+          ho_ten: 'full_name',
+          mat_khau: 'password',
+          mat_khau_confirmation: 're_password',
         };
 
         const newErrors: Record<string, string> = {};
@@ -208,7 +187,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         
         const step1Fields = ['email', 'number_phone'];
         const step2Fields = ['full_name', 'address'];
-        const step3Fields = ['password', 're_password', 'ref_code'];
+        const step3Fields = ['password', 're_password'];
         
         const errorFields = Object.keys(newErrors);
         
@@ -239,7 +218,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           currentStep === 2 ? 'full_name' : 'password';
 
         setErrors({
-          [currentStepFirstField]: t('auth.registrationFailed')
+          [currentStepFirstField]: 'Đăng ký thất bại. Vui lòng thử lại.'
         });
       }
     } finally {
@@ -253,47 +232,47 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     switch (field) {
       case 'email':
         if (!value) {
-          error = t('auth.emailRequired');
+          error = 'Vui lòng nhập email';
         } else if (!/\S+@\S+\.\S+/.test(value)) {
-          error = t('auth.validEmail');
+          error = 'Email không hợp lệ';
         }
         break;
 
       case 'phone':
         if (!value) {
-          error = t('auth.phoneRequired');
+          error = 'Vui lòng nhập số điện thoại';
         } else if (!/^[0-9+().\-\s]{7,15}$/.test(value)) {
-          error = t('auth.validPhone');
+          error = 'Số điện thoại không hợp lệ';
         }
         break;
 
       case 'name':
         if (!value) {
-          error = t('auth.nameRequired');
+          error = 'Vui lòng nhập họ tên';
         } else if (value.length < 2) {
-          error = t('auth.nameMinLength');
+          error = 'Họ tên phải có ít nhất 2 ký tự';
         }
         break;
 
       case 'address':
         if (!value) {
-          error = t('auth.addressRequired');
+          error = 'Vui lòng nhập địa chỉ';
         }
         break;
 
       case 'password':
         if (!value) {
-          error = t('auth.passwordRequired');
+          error = 'Vui lòng nhập mật khẩu';
         } else if (value.length < 6) {
-          error = t('auth.passwordMinLength');
+          error = 'Mật khẩu phải có ít nhất 6 ký tự';
         }
         break;
 
       case 're_password':
         if (!value) {
-          error = t('auth.confirmPasswordRequired');
+          error = 'Vui lòng xác nhận mật khẩu';
         } else if (value !== formData.password) {
-          error = t('auth.passwordsNotMatch');
+          error = 'Mật khẩu không khớp';
         }
         break;
     }
@@ -322,16 +301,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   const getPasswordStrengthText = (strength: number) => {
-    if (strength <= 2) return { text: t('auth.weak'), color: theme.colors.error };
-    if (strength <= 4) return { text: t('auth.medium'), color: theme.colors.warning };
-    return { text: t('auth.strong'), color: theme.colors.success };
+    if (strength <= 2) return { text: 'Yếu', color: theme.colors.error };
+    if (strength <= 4) return { text: 'Trung bình', color: theme.colors.warning };
+    return { text: 'Mạnh', color: theme.colors.success };
   };
 
   const renderStep1 = () => (
     <View style={styles.form}>
       <InputCustom
-        label={t('auth.emailAddress')}
-        placeholder={t('auth.enterEmail')}
+        label="Email"
+        placeholder="Nhập địa chỉ email"
         value={formData.email}
         onChangeText={value => updateFormData('email', value)}
         keyboardType="email-address"
@@ -343,8 +322,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       />
 
       <InputCustom
-        label={t('auth.phoneNumber')}
-        placeholder={t('auth.enterPhoneNumber')}
+        label="Số điện thoại"
+        placeholder="Nhập số điện thoại"
         value={formData.phone}
         onChangeText={value => updateFormData('phone', value)}
         keyboardType="phone-pad"
@@ -359,8 +338,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const renderStep2 = () => (
     <View style={styles.form}>
       <InputCustom
-        label={t('auth.fullName')}
-        placeholder={t('auth.enterFullName')}
+        label="Họ và tên"
+        placeholder="Nhập họ và tên đầy đủ"
         value={formData.name}
         onChangeText={value => updateFormData('name', value)}
         error={errors.full_name}
@@ -370,8 +349,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       />
 
       <InputCustom
-        label={t('auth.address')}
-        placeholder={t('auth.enterAddress')}
+        label="Địa chỉ"
+        placeholder="Nhập địa chỉ"
         value={formData.address}
         onChangeText={value => updateFormData('address', value)}
         error={errors.address}
@@ -385,8 +364,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const renderStep3 = () => (
     <View style={styles.form}>
       <InputCustom
-        label={t('auth.password')}
-        placeholder={t('auth.createPassword')}
+        label="Mật khẩu"
+        placeholder="Tạo mật khẩu"
         value={formData.password}
         onChangeText={(text) => {
           updateFormData('password', text);
@@ -424,8 +403,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       )}
 
       <InputCustom
-        label={t('auth.confirmPassword')}
-        placeholder={t('auth.confirmYourPassword')}
+        label="Xác nhận mật khẩu"
+        placeholder="Nhập lại mật khẩu"
         value={formData.re_password}
         onChangeText={value => updateFormData('re_password', value)}
         secureTextEntry={!showConfirmPassword}
@@ -437,16 +416,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         containerStyle={styles.input}
       />
 
-      <InputCustom
-        label={t('auth.referralCode')}
-        placeholder={t('auth.enterReferralCode')}
-        value={formData.ref_code}
-        onChangeText={value => updateFormData('ref_code', value)}
-        error={errors.ref_code}
-        leftIcon="account-multiple-plus-outline"
-        containerStyle={styles.input}
-        autoCapitalize="characters"
-      />
     </View>
   );
 
@@ -471,8 +440,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       entering={SlideInDown.duration(800).delay(800).springify()}
     >
       <View style={styles.formHeader}>
+        <Text style={styles.formTitle}>
+          Đăng ký tài khoản
+        </Text>
         <Text style={styles.formSubtitle}>
-          {t('auth.signUpJourney') || 'Join us to protect our planet'}
+          Tham gia CityResQ360 để góp phần xây dựng thành phố thông minh
         </Text>
         {renderStepIndicator()}
       </View>
@@ -483,13 +455,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
       <View style={styles.buttonContainer}>
         <ButtonCustom
-          title={currentStep === 1 ? t('common.back') : t('common.previous')}
+          title={currentStep === 1 ? 'Hủy' : 'Quay lại'}
           onPress={handleBack}
           style={styles.backButton}
           variant="outline"
         />
         <ButtonCustom
-          title={currentStep === totalSteps ? t('auth.createAccount') : t('common.next')}
+          title={currentStep === totalSteps ? 'Đăng ký' : 'Tiếp theo'}
           onPress={handleNext}
           style={styles.nextButton}
           icon={currentStep === totalSteps ? "account-plus" : "chevron-right"}
@@ -539,14 +511,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               style={styles.welcomeText}
               entering={FadeInDown.duration(800).delay(200).springify()}
             >
-              {t('auth.welcomeToGreenEduMap') || 'Welcome to GreenEduMap'}
+              Chào mừng đến với CityResQ360
             </Animated.Text>
 
             <Animated.Text
               style={styles.title}
               entering={FadeInDown.duration(800).delay(400).springify()}
             >
-{t('auth.createAccount')}
+              Đăng ký tài khoản
             </Animated.Text>
           </Animated.View>
 
@@ -563,23 +535,23 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               style={styles.loginLink}
             >
               <Text style={styles.loginText}>
-                {t('auth.alreadyHaveAccount')}{' '}
-                <Text style={styles.loginLinkText}>{t('auth.signInLink')}</Text>
+                Đã có tài khoản?{' '}
+                <Text style={styles.loginLinkText}>Đăng nhập ngay</Text>
               </Text>
             </TouchableOpacity>
 
             {/* Security Badge */}
             <View style={styles.securityBadge}>
-              <Icon name="shield-check" size={16} color={theme.colors.success} />
+              <Icon name="shield-check" size={16} color={theme.colors.primary} />
               <Text style={styles.securityText}>
-                {t('auth.dataProtected')}
+                Dữ liệu được bảo mật và mã hóa
               </Text>
             </View>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <LoadingOverlay visible={loading} message={t('auth.sendingCode')} />
+      <LoadingOverlay visible={loading} message="Đang đăng ký tài khoản..." />
       
     </SafeAreaView>
   );
@@ -595,16 +567,16 @@ const styles = StyleSheet.create({
   },
   headerIcons: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 70 : 30,
-    right: 20,
+    top: Platform.OS === 'ios' ? hp('9%') : hp('4%'),
+    right: SPACING.lg,
     flexDirection: 'column',
-    gap: theme.spacing.md,
+    gap: SPACING.md,
     zIndex: 1,
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
     backgroundColor: theme.colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -622,64 +594,64 @@ const styles = StyleSheet.create({
   },
   decorativeCircle1: {
     position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: theme.colors.success + '15',
+    top: hp('-6%'),
+    right: wp('-12%'),
+    width: wp('37.5%'),
+    height: wp('37.5%'),
+    borderRadius: wp('18.75%'),
+    backgroundColor: theme.colors.primary + '15',
   },
   decorativeCircle2: {
     position: 'absolute',
-    bottom: -30,
-    left: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: theme.colors.info + '15',
+    bottom: hp('-4%'),
+    left: wp('-7.5%'),
+    width: wp('25%'),
+    height: wp('25%'),
+    borderRadius: wp('12.5%'),
+    backgroundColor: theme.colors.secondary + '15',
   },
   keyboardAvoidingView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: SPACING.lg,
   },
 
   // Header Styles
   headerContainer: {
     alignItems: 'center',
-    paddingTop: height * 0.03,
-    paddingBottom: theme.spacing.xl,
+    paddingTop: hp('8%'),
+    paddingBottom: SPACING.xl,
   },
   welcomeText: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: FONT_SIZE.md,
     color: theme.colors.textLight,  
     fontFamily: theme.typography.fontFamily,
-    marginBottom: theme.spacing.xs,
+    marginBottom: SPACING.xs,
   },
   title: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 32,
-    color: theme.colors.success,
-    marginBottom: theme.spacing.sm,
+    fontSize: FONT_SIZE['4xl'],
+    color: theme.colors.primary,
+    marginBottom: SPACING.sm,
     fontWeight: 'bold',
   },
   subtitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.fontSize.md,
+    fontSize: FONT_SIZE.md,
     color: theme.colors.textLight,
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: theme.spacing.lg,
+    lineHeight: FONT_SIZE.md * 1.5,
+    paddingHorizontal: SPACING.lg,
   },
 
   // Form Styles
   formContainer: {
     backgroundColor: theme.colors.white,
-    borderRadius: 32,
-    padding: theme.spacing.xl,
-    marginBottom: theme.spacing.xl,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING.xl,
+    marginBottom: SPACING.xl,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -694,16 +666,16 @@ const styles = StyleSheet.create({
   },
   formHeader: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: SPACING.xl,
   },
   formTitle: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: FONT_SIZE.xl,
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    marginBottom: SPACING.xs,
   },
   formSubtitle: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: FONT_SIZE.sm,
     color: theme.colors.textLight,
     textAlign: 'center',
   },
@@ -711,7 +683,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: SPACING.lg,
   },
 
   // Step Indicator Styles
@@ -719,62 +691,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: theme.spacing.md,
-    gap: theme.spacing.md,
+    marginTop: SPACING.md,
+    gap: SPACING.md,
   },
   stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: wp('2%'),
+    height: wp('2%'),
+    borderRadius: wp('1%'),
     backgroundColor: theme.colors.border,
   },
   stepDotActive: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.success,
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
+    backgroundColor: theme.colors.primary,
   },
   stepDotCompleted: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.primary,
   },
 
   // Button Container Styles
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: theme.spacing.xl,
-    gap: theme.spacing.md,
+    marginTop: SPACING.xl,
+    gap: SPACING.md,
   },
   backButton: {
     flex: 1,
-    height: 48,
+    height: hp('6%'),
     backgroundColor: 'transparent',
     borderColor: theme.colors.border,
   },
   nextButton: {
     flex: 1,
-    height: 48,
-    backgroundColor: theme.colors.success,
+    height: hp('6%'),
+    backgroundColor: theme.colors.primary,
   },
 
   // Password Strength Styles
   passwordStrengthContainer: {
-    marginTop: -theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    marginTop: -SPACING.md,
+    marginBottom: SPACING.lg,
   },
   passwordStrengthBar: {
-    height: 4,
+    height: wp('1%'),
     backgroundColor: theme.colors.border,
-    borderRadius: 2,
+    borderRadius: wp('0.5%'),
     overflow: 'hidden',
-    marginBottom: theme.spacing.xs,
+    marginBottom: SPACING.xs,
   },
   passwordStrengthFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: wp('0.5%'),
   },
   passwordStrengthText: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: FONT_SIZE.xs,
     fontFamily: theme.typography.fontFamily,
     textAlign: 'right',
   },
@@ -782,35 +754,36 @@ const styles = StyleSheet.create({
   // Footer Styles
   footerContainer: {
     alignItems: 'center',
-    paddingBottom: theme.spacing.xl,
-    gap: theme.spacing.lg,
+    paddingBottom: SPACING.xl,
+    gap: SPACING.lg,
   },
   loginLink: {
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: SPACING.sm,
   },
   loginText: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.fontSize.md,
+    fontSize: FONT_SIZE.md,
     color: theme.colors.text,
     textAlign: 'center',
   },
   loginLinkText: {
-    color: theme.colors.success,
+    color: theme.colors.primary,
     fontFamily: theme.typography.fontFamily,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   securityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: theme.colors.success + '10',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: 20,
+    gap: SPACING.sm,
+    backgroundColor: theme.colors.primary + '10',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
-    borderColor: theme.colors.success + '20',
+    borderColor: theme.colors.primary + '20',
   },
   securityText: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: FONT_SIZE.xs,
     color: theme.colors.text,
     fontFamily: theme.typography.fontFamily,
     textAlign: 'center',
