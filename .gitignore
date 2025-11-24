@@ -1,6 +1,7 @@
 # OSX
 #
 .DS_Store
+.env*
 
 # Xcode
 #
@@ -41,6 +42,10 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
+# Environment configuration
+src/config/env.ts
+ios/EnvConfigModule.m
+
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
@@ -59,6 +64,10 @@ yarn-error.log
 # Ruby / CocoaPods
 **/Pods/
 /vendor/bundle/
+
+# Google Services
+**/GoogleService-Info.plist
+**/google-services.json
 
 # Temporary files created by Metro to check the health of the file watcher
 .metro-health-check*
