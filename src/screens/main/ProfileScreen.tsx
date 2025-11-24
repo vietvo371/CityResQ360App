@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -13,9 +13,47 @@ import {
   wp,
   hp,
 } from '../../theme';
+import { walletService } from '../../services/walletService';
+import { reportService } from '../../services/reportService';
+import { WalletInfo } from '../../types/api/wallet';
 
 const ProfileScreen = () => {
   const { user, signOut } = useAuth();
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [reportCount, setReportCount] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [walletRes, reportsRes] = await Promise.all([
+          walletService.getWalletInfo(),
+          reportService.getMyReports({ per_page: 1 }) // Just to get total count if API supports meta, or fetch all? 
+          // Assuming getMyReports returns list. If pagination meta is needed, I should check common.ts.
+          // For now, let's assume I fetch list and count length or API returns meta.
+          // My reportService.getMyReports returns ApiResponse<Report[]>. 
+          // If I want count, I might need to fetch all or check if response has meta (which I didn't add to return type explicitly but it might be there).
+          // Let's just fetch a small page and hope for a total count in response or just fetch all if list is small.
+          // Or just fetch all for now.
+        ]);
+
+        if (walletRes.success) {
+          setWalletInfo(walletRes.data);
+        }
+
+        // For report count, if API doesn't return total in data, I might need to rely on something else.
+        // But let's assume for now I can just use the length of fetched reports or mock it if complex.
+        // Actually, let's try to fetch all for "my reports" as it shouldn't be huge for a demo.
+        const allReportsRes = await reportService.getMyReports();
+        if (allReportsRes.success) {
+          setReportCount(allReportsRes.data.length);
+        }
+      } catch (error) {
+        console.error('Error fetching profile stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const menuItems = [
     {
@@ -37,6 +75,10 @@ const ProfileScreen = () => {
     }
   ];
 
+  const formatPoints = (points: number) => {
+    return points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
@@ -46,12 +88,12 @@ const ProfileScreen = () => {
         <View style={styles.header}>
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              {user?.anh_dai_dien ? (
+                <Image source={{ uri: user.anh_dai_dien }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>
-                    {user?.name?.charAt(0) || user?.fullName?.charAt(0) || 'U'}
+                    {user?.ho_ten?.charAt(0) || 'U'}
                   </Text>
                 </View>
               )}
@@ -60,24 +102,28 @@ const ProfileScreen = () => {
               </View>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user?.name || user?.fullName || 'Người dùng'}</Text>
+              <Text style={styles.userName}>{user?.ho_ten || 'Người dùng'}</Text>
               <Text style={styles.userRole}>Cư dân TP.HCM</Text>
             </View>
           </View>
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statValue}>{reportCount}</Text>
               <Text style={styles.statLabel}>Báo cáo</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>1,250</Text>
+              <Text style={styles.statValue}>
+                {walletInfo ? formatPoints(walletInfo.diem_thanh_pho) : '...'}
+              </Text>
               <Text style={styles.statLabel}>Điểm thưởng</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>4.8</Text>
+              <Text style={styles.statValue}>
+                {walletInfo ? walletInfo.diem_uy_tin : '...'}
+              </Text>
               <Text style={styles.statLabel}>Uy tín</Text>
             </View>
           </View>

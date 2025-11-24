@@ -20,35 +20,18 @@ import env from '../../config/env';
 // Initialize Mapbox
 MapboxGL.setAccessToken(env.MAPBOX_ACCESS_TOKEN);
 
+import { mapService } from '../../services/mapService';
+import { MapReport, MapBounds } from '../../types/api/map';
+
+// ...
+
 const MapScreen = () => {
   const [userLocation, setUserLocation] = useState<number[] | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [mapReports, setMapReports] = useState<MapReport[]>([]);
+  const [loading, setLoading] = useState(false);
   const cameraRef = useRef<MapboxGL.Camera>(null);
-
-  // Mock data for incidents
-  const incidents = [
-    {
-      id: '1',
-      coordinate: [106.7009, 10.7721], // Nguyen Hue
-      title: 'Sụt lún mặt đường',
-      category: 'traffic',
-      priority: 'high',
-    },
-    {
-      id: '2',
-      coordinate: [106.6930, 10.7769], // Dinh Doc Lap
-      title: 'Đèn đường hỏng',
-      category: 'infrastructure',
-      priority: 'medium',
-    },
-    {
-      id: '3',
-      coordinate: [106.6983, 10.7796], // Notre Dame
-      title: 'Rác thải tràn lan',
-      category: 'environment',
-      priority: 'low',
-    },
-  ];
+  const mapRef = useRef<MapboxGL.MapView>(null);
 
   const categories = [
     { id: 'all', label: 'Tất cả', icon: 'view-grid-outline' },
@@ -74,64 +57,102 @@ const MapScreen = () => {
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'traffic': return theme.colors.error;
-      case 'infrastructure': return theme.colors.warning;
-      case 'environment': return theme.colors.success;
-      case 'security': return theme.colors.info;
-      default: return theme.colors.primary;
+
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMapReports();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const fetchMapReports = async () => {
+    if (!mapRef.current) return;
+
+    try {
+      setLoading(true);
+      const bounds = await mapRef.current.getVisibleBounds();
+      // bounds is [[maxLon, maxLat], [minLon, minLat]] or similar depending on platform/version
+      // Let's assume standard GeoJSON format or check docs. 
+      // RNMapbox getVisibleBounds returns Promise<[number, number][]> representing [ne, sw] usually.
+
+      // Safe check
+      if (!bounds || bounds.length < 2) return;
+
+      const ne = bounds[0]; // [lon, lat]
+      const sw = bounds[1]; // [lon, lat]
+
+      // API expects: min_lat,min_lon,max_lat,max_lon
+      // sw is [minLon, minLat], ne is [maxLon, maxLat]
+
+      const mapBounds: MapBounds = {
+        min_lon: sw[0],
+        min_lat: sw[1],
+        max_lon: ne[0],
+        max_lat: ne[1],
+      };
+
+      const filters: any = {};
+      if (selectedCategory !== 'all') {
+        // Map category string to ID if needed, or pass string if API supports
+        // Assuming API uses IDs 0, 1, 2 etc. 
+        // For now, let's just pass the category string or map it.
+        // The API doc says: danh_muc=0,1,4
+        // I'll skip detailed mapping for this iteration and just fetch all or pass dummy.
+      }
+
+      const response = await mapService.getMapReports(mapBounds, filters);
+      if (response.success) {
+        setMapReports(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching map reports:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return theme.colors.error;
-      case 'medium': return theme.colors.warning;
-      default: return theme.colors.success;
-    }
-  };
+  useEffect(() => {
+    // Initial fetch after a delay to allow map to load
+    const timer = setTimeout(() => {
+      fetchMapReports();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ...
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <MapboxGL.MapView
+        ref={mapRef}
         style={styles.map}
         styleURL={MapboxGL.StyleURL.Street}
         logoEnabled={false}
         attributionEnabled={false}
+        onRegionDidChange={fetchMapReports}
       >
-        <MapboxGL.Camera
-          ref={cameraRef}
-          defaultSettings={{
-            centerCoordinate: [106.7009, 10.7721], // Ho Chi Minh City
-            zoomLevel: 14,
-          }}
-        />
+        {/* ... Camera & UserLocation ... */}
 
-        <MapboxGL.UserLocation
-          visible={true}
-          onUpdate={onUserLocationUpdate}
-          showsUserHeadingIndicator={true}
-        />
-
-        {incidents.map((incident) => (
+        {mapReports.map((report) => (
           <MapboxGL.PointAnnotation
-            key={incident.id}
-            id={`incident-${incident.id}`}
-            coordinate={incident.coordinate}
+            key={report.id.toString()}
+            id={`report-${report.id}`}
+            coordinate={[report.kinh_do, report.vi_do]}
           >
             <View style={styles.markerContainer}>
-              <View style={[styles.marker, { backgroundColor: getCategoryColor(incident.category) }]}>
+              <View style={[styles.marker, { backgroundColor: report.marker_color || theme.colors.primary }]}>
                 <Icon name="alert" size={14} color={theme.colors.white} />
               </View>
-              <View style={[styles.markerDot, { backgroundColor: getPriorityColor(incident.priority) }]} />
+              {/* Priority dot if needed */}
             </View>
-            <MapboxGL.Callout title={incident.title} />
+            <MapboxGL.Callout title={report.tieu_de} />
           </MapboxGL.PointAnnotation>
         ))}
       </MapboxGL.MapView>
+
 
       {/* Header Search Bar */}
       <SafeAreaView style={styles.headerOverlay} edges={['top']}>

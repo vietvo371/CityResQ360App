@@ -1,30 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi, User, SignUpData } from '../utils/authApi';
+import { User } from '../types/api/auth';
+import { authService } from '../services/authService';
 import { EkycVerifyRequest, EkycVerifyResponse } from '../types/ekyc';
-import api from '../utils/Api';
-import { saveToken, saveUser } from '../utils/TokenManager';
+import { authApi } from '../utils/authApi'; // Keep for legacy methods not yet migrated if any
+
+// ... (Keep existing interfaces for CityResQ360 features like NotificationPreferences, etc.)
+// We need to redefine AuthContextData to use the new User type
 
 // ============================================================================
 // TYPES - CityResQ360 User Roles & Data Structures
 // ============================================================================
-
-/**
- * User roles in CityResQ360 ecosystem
- * - citizen: Người dân báo cáo sự cố đô thị
- * - government: Cán bộ chính quyền xử lý sự cố
- * - admin: Quản trị viên hệ thống
- * - ai_system: Hệ thống AI phân tích và phân loại sự cố
- * - emergency_responder: Đội ứng cứu khẩn cấp
- * - maintenance_team: Đội bảo trì cơ sở hạ tầng
- */
-type UserRole = 
-  | 'citizen' 
-  | 'government' 
-  | 'admin' 
-  | 'ai_system' 
-  | 'emergency_responder' 
-  | 'maintenance_team';
 
 /**
  * CityResQ360 notification preferences
@@ -34,15 +20,15 @@ interface NotificationPreferences {
   incidentAlerts: boolean;
   emergencyAlerts: boolean;
   maintenanceUpdates: boolean;
-  
+
   // Location-based notifications
   nearbyIncidents: boolean;
   locationRadius: number; // km
-  
+
   // Report status updates
   reportStatusUpdates: boolean;
   governmentResponses: boolean;
-  
+
   // Community updates
   communityUpdates: boolean;
   systemAnnouncements: boolean;
@@ -78,10 +64,10 @@ interface CivicEngagement {
   totalReports: number;
   resolvedReports: number;
   pendingReports: number;
-  
+
   // User Reports
   userReports: IncidentReport[];
-  
+
   // Community Impact
   communityRank: number;
   civicPoints: number;
@@ -92,7 +78,7 @@ interface CivicEngagement {
     earnedAt: Date;
     description: string;
   }>;
-  
+
   // Engagement Metrics
   responseRate: number; // How often government responds to user's reports
   resolutionTime: number; // Average time to resolve user's reports (in hours)
@@ -105,17 +91,17 @@ interface CivicEngagement {
 interface GovernmentActivity {
   // Assigned incidents
   assignedIncidents: IncidentReport[];
-  
+
   // Response metrics
   totalAssigned: number;
   totalResolved: number;
   averageResponseTime: number; // in hours
-  
+
   // Performance stats
   currentLevel: number;
   performanceScore: number;
   citizenSatisfactionRating: number;
-  
+
   // Department info
   department: string;
   jurisdiction: string[];
@@ -134,7 +120,7 @@ interface AIInsights {
     timeframe: string;
     preventiveMeasures: string[];
   }>;
-  
+
   // City trends
   cityTrends: {
     incidentTrend: 'improving' | 'stable' | 'worsening';
@@ -142,19 +128,16 @@ interface AIInsights {
     responseEfficiency: 'excellent' | 'good' | 'needs_improvement';
     citizenSatisfaction: number;
   };
-  
+
   // Smart recommendations
   recommendations: Array<{
     message: string;
     type: 'prevention' | 'optimization' | 'alert' | 'maintenance';
     priority: 'low' | 'medium' | 'high';
-    targetAudience: UserRole[];
+    targetAudience: string[];
   }>;
 }
 
-/**
- * Login validation result
- */
 export interface LoginValidationResult {
   isValid: boolean;
   errors: {
@@ -163,9 +146,6 @@ export interface LoginValidationResult {
   };
 }
 
-/**
- * Login result
- */
 export interface LoginResult {
   success: boolean;
   needsEmailVerification?: boolean;
@@ -177,37 +157,34 @@ export interface LoginResult {
   };
 }
 
-/**
- * Main Auth Context Data
- */
 interface AuthContextData {
   // Authentication
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
-  userRole: UserRole | null;
-  
+  userRole: string | null;
+
   // Auth Methods
   validateLogin: (identifier: string, password: string, isPhoneNumber: boolean) => LoginValidationResult;
   signIn: (credentials: { identifier: string; password: string; type: 'email' | 'phone' }) => Promise<LoginResult>;
-  signUp: (userData: SignUpData) => Promise<void>;
+  signUp: (userData: any) => Promise<void>;
   signOut: () => Promise<void>;
   verifyEkyc: (data: EkycVerifyRequest) => Promise<EkycVerifyResponse>;
-  
+
   // CityResQ360 Specific Features
   notificationPreferences: NotificationPreferences;
   updateNotificationPreferences: (preferences: Partial<NotificationPreferences>) => Promise<void>;
-  
+
   civicEngagement: CivicEngagement | null;
   loadCivicEngagement: () => Promise<void>;
   submitIncidentReport: (report: Omit<IncidentReport, 'id' | 'reportedAt' | 'updatedAt' | 'status'>) => Promise<void>;
-  
+
   governmentActivity: GovernmentActivity | null;
   loadGovernmentActivity: () => Promise<void>;
-  
+
   aiInsights: AIInsights | null;
   refreshAIInsights: () => Promise<void>;
-  
+
   // User settings
   updateUserSettings: (settings: any) => Promise<void>;
 }
@@ -237,7 +214,7 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // CityResQ360 specific state
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(
     DEFAULT_NOTIFICATION_PREFERENCES
@@ -249,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
-  
+
   useEffect(() => {
     initializeApp();
   }, []);
@@ -274,21 +251,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadStoredUser = async () => {
     try {
-      const storedUser = await authApi.loadStoredUser();
+      const storedUser = await authService.getUser();
       setUser(storedUser);
     } catch (error) {
       console.log('Error loading stored user:', error);
     }
   };
 
-  /**
-   * Validate login form
-   * Returns error keys that can be translated in the UI
-   */
   const validateLogin = (identifier: string, password: string, isPhoneNumber: boolean): LoginValidationResult => {
     const errors: { identifier?: string; password?: string } = {};
 
-    // Validate identifier (email or phone)
     if (!identifier) {
       errors.identifier = isPhoneNumber ? 'PHONE_REQUIRED' : 'EMAIL_REQUIRED';
     } else if (isPhoneNumber) {
@@ -301,7 +273,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Validate password
     if (!password) {
       errors.password = 'PASSWORD_REQUIRED';
     } else if (password.length < 6) {
@@ -314,44 +285,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  /**
-   * Sign in user with validation and error handling
-   */
   const signIn = async (credentials: { identifier: string; password: string; type: 'email' | 'phone' }): Promise<LoginResult> => {
     try {
       console.log('Login attempt:', credentials.identifier);
-      console.log('Login type:', credentials.type);
 
-      // Call the API - CityResQ360 API format
-      const response = await api.post('/auth/login', {
-        email: credentials.identifier,
-        mat_khau: credentials.password,
-        remember: true,
+      const response = await authService.login({
+        identifier: credentials.identifier,
+        password: credentials.password,
+        type: credentials.type
       });
 
-      console.log('Login response:', response.data);
+      console.log('Login successful:', response);
 
-      // Handle API response - CityResQ360 format
-      if (!response.data.success) {
-        return {
-          success: false,
-          error: response.data.message || 'Đăng nhập thất bại',
-          errors: {
-            identifier: response.data.message || 'Email hoặc mật khẩu không đúng',
-          },
-        };
-      }
+      setUser(response.user);
 
-      // Login successful
-      console.log('Login successful:', response.data.data);
-      
-      // Save user and token - CityResQ360 format
-      await saveUser(response.data.data.user);
-      await saveToken(response.data.data.token);
-      
-      // Update context state
-      setUser(response.data.data.user);
-      
       // Load user's CityResQ360 data after sign in
       await Promise.all([
         loadNotificationPreferences(),
@@ -366,18 +313,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.log('Login error:', error);
 
-      // Handle different types of errors
       let errorMessage = 'Login failed. Please try again.';
       const errors: { identifier?: string; password?: string } = {};
 
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
-        errors.identifier = errorMessage;
-      } else if (error.response?.data?.errors) {
-        // Handle validation errors from API
-        const apiErrors = error.response.data.errors;
-        const firstError = Object.values(apiErrors)[0];
-        errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
         errors.identifier = errorMessage;
       } else if (error.message) {
         errorMessage = error.message;
@@ -392,9 +332,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (userData: SignUpData) => {
+  const signUp = async (userData: any) => {
     try {
-      await authApi.signUp(userData);
+      await authService.register(userData);
       // Initialize default preferences for new users
       await saveNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
     } catch (error: any) {
@@ -405,15 +345,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await authApi.signOut();
+      await authService.logout();
       setUser(null);
-      
+
       // Clear CityResQ360 data
       setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
       setCivicEngagement(null);
       setGovernmentActivity(null);
       setAIInsights(null);
-      
+
       // Clear AsyncStorage
       await AsyncStorage.multiRemove([
         '@notification_preferences',
@@ -464,9 +404,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updated = { ...notificationPreferences, ...preferences };
       setNotificationPreferences(updated);
       await saveNotificationPreferences(updated);
-      
-      // TODO: Sync with backend API
-      // await authApi.updateNotificationPreferences(updated);
     } catch (error) {
       console.log('Error updating notification preferences:', error);
       throw error;
@@ -498,10 +435,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setCivicEngagement(defaultEngagement);
       }
-      
-      // TODO: Fetch from backend
-      // const engagement = await authApi.getCivicEngagement();
-      // setCivicEngagement(engagement);
     } catch (error) {
       console.log('Error loading civic engagement:', error);
     }
@@ -516,7 +449,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: new Date(),
         status: 'pending',
       };
-      
+
       const updatedEngagement = {
         ...civicEngagement!,
         userReports: [...(civicEngagement?.userReports || []), newReport],
@@ -524,14 +457,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         pendingReports: (civicEngagement?.pendingReports || 0) + 1,
         civicPoints: (civicEngagement?.civicPoints || 0) + 10,
       };
-      
+
       setCivicEngagement(updatedEngagement);
       await AsyncStorage.setItem('@civic_engagement', JSON.stringify(updatedEngagement));
-      
-      // TODO: Sync with backend
-      // await authApi.submitIncidentReport(newReport);
-      
-      // Refresh AI insights after submitting report
+
       await refreshAIInsights();
     } catch (error) {
       console.log('Error submitting incident report:', error);
@@ -563,10 +492,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setGovernmentActivity(defaultActivity);
       }
-      
-      // TODO: Fetch from backend
-      // const activity = await authApi.getGovernmentActivity();
-      // setGovernmentActivity(activity);
     } catch (error) {
       console.log('Error loading government activity:', error);
     }
@@ -578,8 +503,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshAIInsights = async () => {
     try {
-      // TODO: Fetch real AI insights from backend
-      // For now, generate mock insights based on user data
+      // Mock insights for now
       const mockInsights: AIInsights = {
         predictedIncidents: [
           {
@@ -606,13 +530,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
         ],
       };
-      
+
       setAIInsights(mockInsights);
       await AsyncStorage.setItem('@ai_insights', JSON.stringify(mockInsights));
-      
-      // TODO: Real API call
-      // const insights = await authApi.getAIInsights();
-      // setAIInsights(insights);
     } catch (error) {
       console.log('Error refreshing AI insights:', error);
     }
@@ -624,9 +544,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserSettings = async (settings: any) => {
     try {
-      // TODO: Implement user settings update
       console.log('Updating user settings:', settings);
-      // await authApi.updateUserSettings(settings);
     } catch (error) {
       console.log('Error updating user settings:', error);
       throw error;
@@ -656,21 +574,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         signOut,
         verifyEkyc,
-        
+
         // CityResQ360 Features
         notificationPreferences,
         updateNotificationPreferences,
-        
+
         civicEngagement,
         loadCivicEngagement,
         submitIncidentReport,
-        
+
         governmentActivity,
         loadGovernmentActivity,
-        
+
         aiInsights,
         refreshAIInsights,
-        
+
         updateUserSettings,
       }}
     >
@@ -678,10 +596,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
-
-// ============================================================================
-// HOOK
-// ============================================================================
 
 export function useAuth(): AuthContextData {
   const context = useContext(AuthContext);
@@ -693,12 +607,7 @@ export function useAuth(): AuthContextData {
   return context;
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
 export type {
-  UserRole,
   NotificationPreferences,
   IncidentReport,
   CivicEngagement,

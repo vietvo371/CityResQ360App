@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
@@ -13,14 +13,45 @@ import {
   wp,
   hp,
 } from '../../theme';
+import PageHeader from '../../component/PageHeader';
+import { walletService } from '../../services/walletService';
+import { WalletInfo, Transaction } from '../../types/api/wallet';
 
 const WalletScreen = () => {
-  const transactions = [
-    { id: 1, title: 'Báo cáo sự cố được duyệt', date: '20/11/2023', amount: '+50', type: 'earn' },
-    { id: 2, title: 'Đổi voucher Coffee House', date: '18/11/2023', amount: '-200', type: 'spend' },
-    { id: 3, title: 'Đóng góp quỹ xanh', date: '15/11/2023', amount: '-100', type: 'spend' },
-    { id: 4, title: 'Hoàn thành khảo sát', date: '10/11/2023', amount: '+20', type: 'earn' },
-  ];
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [infoRes, transRes] = await Promise.all([
+        walletService.getWalletInfo(),
+        walletService.getTransactions({ per_page: 5 })
+      ]);
+
+      if (infoRes.success) {
+        setWalletInfo(infoRes.data);
+      }
+      if (transRes.success) {
+        setTransactions(transRes.data);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
 
   const quickActions = [
     { id: 'redeem', icon: 'gift-outline', label: 'Đổi quà', color: theme.colors.primary },
@@ -29,32 +60,65 @@ const WalletScreen = () => {
     { id: 'scan', icon: 'qrcode-scan', label: 'Quét mã', color: theme.colors.success },
   ];
 
+  const formatPoints = (points: number) => {
+    return points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+      <PageHeader
+        title="Ví điểm CityPoint"
+        variant="default"
+        rightIcon="help-circle-outline"
+        onRightPress={() => { }}
+      />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ví điểm CityPoint</Text>
-        <TouchableOpacity>
-          <Icon name="help-circle-outline" size={ICON_SIZE.md} color={theme.colors.text} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Balance Card */}
         <LinearGradient
-          colors={[theme.colors.primary, '#4facfe']}
+          colors={[theme.colors.primary, '#2196F3', '#4facfe']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.balanceCard}
         >
-          <View>
-            <Text style={styles.balanceLabel}>Tổng điểm tích lũy</Text>
-            <Text style={styles.balanceValue}>1,250</Text>
+          {/* Background Pattern (Optional decorative circles) */}
+          <View style={styles.cardPatternCircle1} />
+          <View style={styles.cardPatternCircle2} />
+
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.cardLabel}>Tổng điểm tích lũy</Text>
+              <Text style={styles.cardSubLabel}>CityResQ360 Rewards</Text>
+            </View>
+            <View style={styles.rankBadge}>
+              <Icon name="crown" size={14} color="#FFD700" />
+              <Text style={styles.rankText} numberOfLines={1}>
+                {walletInfo?.cap_huy_hieu_text || 'Thành viên'}
+              </Text>
+            </View>
           </View>
-          <View style={styles.rankBadge}>
-            <Icon name="crown" size={16} color="#FFD700" />
-            <Text style={styles.rankText}>Thành viên Vàng</Text>
+
+          <View style={styles.cardBody}>
+            <Text style={styles.balanceValue}>
+              {walletInfo ? formatPoints(walletInfo.diem_thanh_pho) : '...'}
+            </Text>
+            <Text style={styles.currencyLabel}>CityPoints</Text>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.idContainer}>
+              <Text style={styles.idLabel}>ID: </Text>
+              <Text style={styles.idValue}>
+                {walletInfo ? `MB-${walletInfo.cap_huy_hieu || '00'}-${Math.floor(Math.random() * 10000)}` : '...'}
+              </Text>
+            </View>
+            <Icon name="contactless-payment" size={24} color="rgba(255,255,255,0.8)" />
           </View>
         </LinearGradient>
 
@@ -73,24 +137,36 @@ const WalletScreen = () => {
         {/* Transactions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
-          {transactions.map((item) => (
-            <View key={item.id} style={styles.transactionItem}>
-              <View style={[styles.transIcon, { backgroundColor: item.type === 'earn' ? theme.colors.success + '15' : theme.colors.textSecondary + '15' }]}>
-                <Icon
-                  name={item.type === 'earn' ? 'arrow-down-left' : 'arrow-up-right'}
-                  size={ICON_SIZE.md}
-                  color={item.type === 'earn' ? theme.colors.success : theme.colors.textSecondary}
-                />
+          {loading && !refreshing ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : transactions.length > 0 ? (
+            transactions.map((item) => (
+              <View key={item.id} style={styles.transactionItem}>
+                <View style={[styles.transIcon, {
+                  backgroundColor: item.loai_giao_dich === 0 ? theme.colors.success + '15' : theme.colors.textSecondary + '15'
+                }]}>
+                  <Icon
+                    name={item.loai_giao_dich === 0 ? 'arrow-down-left' : 'arrow-up-right'}
+                    size={ICON_SIZE.md}
+                    color={item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.textSecondary}
+                  />
+                </View>
+                <View style={styles.transInfo}>
+                  <Text style={styles.transTitle}>{item.loai_giao_dich_text}</Text>
+                  <Text style={styles.transDate}>
+                    {new Date(item.ngay_tao).toLocaleDateString('vi-VN')}
+                  </Text>
+                </View>
+                <Text style={[styles.transAmount, {
+                  color: item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.text
+                }]}>
+                  {item.loai_giao_dich === 0 ? '+' : '-'}{item.so_diem}
+                </Text>
               </View>
-              <View style={styles.transInfo}>
-                <Text style={styles.transTitle}>{item.title}</Text>
-                <Text style={styles.transDate}>{item.date}</Text>
-              </View>
-              <Text style={[styles.transAmount, { color: item.type === 'earn' ? theme.colors.success : theme.colors.text }]}>
-                {item.amount}
-              </Text>
-            </View>
-          ))}
+            ))
+          ) : (
+            <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -120,35 +196,98 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
     marginBottom: SPACING.xl,
+    minHeight: 200,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    position: 'relative',
+    ...theme.shadows.md,
+  },
+  cardPatternCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  cardPatternCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    ...theme.shadows.md,
   },
-  balanceLabel: {
+  cardLabel: {
     fontSize: FONT_SIZE.sm,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: SPACING.xs,
+    fontWeight: '500',
   },
-  balanceValue: {
-    fontSize: FONT_SIZE['4xl'],
-    fontWeight: '700',
-    color: theme.colors.white,
+  cardSubLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   rankBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
     gap: 4,
+    maxWidth: '45%',
+    alignSelf: 'flex-start',
   },
   rankText: {
     fontSize: FONT_SIZE.xs,
     color: theme.colors.white,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  cardBody: {
+    marginVertical: SPACING.md,
+  },
+  balanceValue: {
+    fontSize: 42,
+    fontWeight: '800',
+    color: theme.colors.white,
+    letterSpacing: -1,
+  },
+  currencyLabel: {
+    fontSize: FONT_SIZE.md,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+    marginTop: -4,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  idContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  idLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  idValue: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '600',
   },
   actionsGrid: {
@@ -212,6 +351,12 @@ const styles = StyleSheet.create({
   transAmount: {
     fontSize: FONT_SIZE.md,
     fontWeight: '700',
+  },
+  emptyText: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: SPACING.md,
   },
 });
 
