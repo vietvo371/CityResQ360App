@@ -1,17 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Platform, Modal, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Platform, Modal, Dimensions, ActivityIndicator, PermissionsAndroid } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MapboxGL from '@rnmapbox/maps';
+import Geolocation from 'react-native-geolocation-service';
 import PageHeader from '../../component/PageHeader';
 import InputCustom from '../../component/InputCustom';
 import ButtonCustom from '../../component/ButtonCustom';
 import ModalCustom from '../../component/ModalCustom';
 import { theme, SPACING, FONT_SIZE, BORDER_RADIUS, SCREEN_PADDING, wp, hp } from '../../theme';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { reportService } from '../../services/reportService';
 import { mapService } from '../../services/mapService';
-import { CreateReportRequest } from '../../types/api/report';
+import { mediaService } from '../../services/mediaService';
+import { CreateReportRequest, Media } from '../../types/api/report';
 import env from '../../config/env';
 
 // Initialize Mapbox
@@ -48,6 +51,9 @@ const CreateReportScreen = () => {
   const [tempLocation, setTempLocation] = useState<number[] | null>(null);
   const [tempAddress, setTempAddress] = useState('');
   const [loadingAddress, setLoadingAddress] = useState(false);
+  const [currentTag, setCurrentTag] = useState('');
+  const [uploadedMedia, setUploadedMedia] = useState<Media[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const mapRef = useRef<MapboxGL.MapView>(null);
   const cameraRef = useRef<MapboxGL.Camera>(null);
 
@@ -64,6 +70,89 @@ const CreateReportScreen = () => {
     media_ids: []
   });
 
+  const handleAddTag = () => {
+    const currentTags = formData.the_tags || [];
+    if (currentTag.trim() && !currentTags.includes(currentTag.trim())) {
+      setFormData({
+        ...formData,
+        the_tags: [...currentTags, currentTag.trim()]
+      });
+      setCurrentTag('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const currentTags = formData.the_tags || [];
+    setFormData({
+      ...formData,
+      the_tags: currentTags.filter(tag => tag !== tagToRemove)
+    });
+  };
+
+  const handleSelectMedia = async () => {
+    if (uploadedMedia.length >= 5) {
+      setErrorMessage('Bạn chỉ được tải lên tối đa 5 ảnh/video');
+      setShowErrorModal(true);
+      return;
+    }
+
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        selectionLimit: 5 - uploadedMedia.length,
+        quality: 0.5, // Reduced quality to avoid 413
+        maxWidth: 1024, // Resize large images
+        maxHeight: 1024,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        setUploadingMedia(true);
+        const newMedia: Media[] = [];
+        const newMediaIds: number[] = [];
+
+        for (const asset of result.assets) {
+          try {
+            console.log('🚀 [API Request] Upload Media:', asset.fileName);
+            const response = await mediaService.uploadMedia(
+              asset,
+              asset.type?.includes('video') ? 'video' : 'image',
+              'phan_anh',
+              'Hình ảnh phản ánh'
+            );
+            console.log('✅ [API Response] Upload Media:', response);
+
+            if (response.success && response.data) {
+              newMedia.push(response.data);
+              newMediaIds.push(response.data.id);
+            }
+          } catch (error) {
+            console.error('❌ [API Error] Upload Media:', error);
+          }
+        }
+
+        if (newMedia.length > 0) {
+          setUploadedMedia([...uploadedMedia, ...newMedia]);
+          setFormData(prev => ({
+            ...prev,
+            media_ids: [...(prev.media_ids || []), ...newMediaIds]
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const handleRemoveMedia = (mediaId: number) => {
+    setUploadedMedia(uploadedMedia.filter(m => m.id !== mediaId));
+    setFormData(prev => ({
+      ...prev,
+      media_ids: (prev.media_ids || []).filter(id => id !== mediaId)
+    }));
+  };
+
   const [errors, setErrors] = useState<{
     tieu_de?: string;
     mo_ta?: string;
@@ -77,6 +166,55 @@ const CreateReportScreen = () => {
       setTempAddress(formData.dia_chi);
     }
   }, [showMapModal]);
+
+  useEffect(() => {
+    const getCurrentLocation = async () => {
+      try {
+        if (Platform.OS === 'android') {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            return;
+          }
+        } else {
+          const auth = await Geolocation.requestAuthorization('whenInUse');
+          if (auth !== 'granted') {
+            return;
+          }
+        }
+
+        Geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+
+            // Get address for current location
+            let address = '';
+            try {
+              address = await mapService.reverseGeocode(latitude, longitude);
+            } catch (error) {
+              console.error('Reverse geocode error:', error);
+            }
+
+            setFormData(prev => ({
+              ...prev,
+              vi_do: latitude,
+              kinh_do: longitude,
+              dia_chi: address
+            }));
+          },
+          (error) => {
+            console.log('Location error:', error.code, error.message);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+      } catch (error) {
+        console.error('Permission error:', error);
+      }
+    };
+
+    getCurrentLocation();
+  }, []);
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
@@ -107,15 +245,21 @@ const CreateReportScreen = () => {
     }
 
     setLoading(true);
+    console.log('🚀 [API Request] Create Report:', formData);
     try {
       const response = await reportService.createReport(formData);
+      console.log('✅ [API Response] Create Report:', response);
 
       if (response.success) {
         setSuccessMessage(response.message || 'Tạo phản ánh thành công!');
         setShowSuccessModal(true);
       }
     } catch (error: any) {
-      console.error('Create report error:', error);
+      console.error('❌ [API Error] Create Report:', error);
+      if (error.response) {
+        console.log('Error Data:', error.response.data);
+        console.log('Error Status:', error.response.status);
+      }
       let message = 'Không thể tạo phản ánh. Vui lòng thử lại.';
 
       if (error.response?.data?.message) {
@@ -143,10 +287,12 @@ const CreateReportScreen = () => {
     // Reverse Geocoding
     try {
       setLoadingAddress(true);
+      console.log('🚀 [API Request] Reverse Geocode:', { lat: coords[1], long: coords[0] });
       const address = await mapService.reverseGeocode(coords[1], coords[0]);
+      console.log('✅ [API Response] Reverse Geocode:', address);
       setTempAddress(address);
     } catch (error) {
-      console.error('Geocoding error:', error);
+      console.error('❌ [API Error] Reverse Geocode:', error);
     } finally {
       setLoadingAddress(false);
     }
@@ -251,6 +397,29 @@ const CreateReportScreen = () => {
             />
             <Text style={styles.charCount}>{formData.mo_ta.length}/1000</Text>
           </View>
+
+          {/* Tags */}
+          <View style={styles.inputGroup}>
+            <InputCustom
+              label="Thẻ (Tags)"
+              placeholder="Nhập thẻ (ví dụ: ngập lụt)"
+              value={currentTag}
+              onChangeText={setCurrentTag}
+              rightIcon="plus-circle"
+              onRightIconPress={handleAddTag}
+              containerStyle={styles.input}
+            />
+            <View style={styles.tagList}>
+              {(formData.the_tags || []).map((tag, index) => (
+                <View key={index} style={styles.tagChip}>
+                  <Text style={styles.tagText}>#{tag}</Text>
+                  <TouchableOpacity onPress={() => handleRemoveTag(tag)} hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}>
+                    <Icon name="close-circle" size={16} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
 
         {/* Location */}
@@ -316,13 +485,48 @@ const CreateReportScreen = () => {
         {/* Media Upload */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Hình ảnh/Video</Text>
-          <TouchableOpacity style={styles.uploadArea} activeOpacity={0.7}>
-            <View style={styles.uploadIconCircle}>
-              <Icon name="camera-plus" size={32} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.uploadTitle}>Thêm ảnh hoặc video</Text>
-            <Text style={styles.uploadSubtitle}>Tối đa 5 file (JPG, PNG, MP4)</Text>
-          </TouchableOpacity>
+
+          <View style={styles.mediaList}>
+            {uploadedMedia.map((media) => (
+              <View key={media.id} style={styles.mediaItem}>
+                <Image
+                  source={{ uri: media.thumbnail_url || media.url }}
+                  style={styles.mediaImage}
+                  resizeMode="cover"
+                />
+                {media.type === 'video' && (
+                  <View style={styles.videoBadge}>
+                    <Icon name="video" size={12} color={theme.colors.white} />
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.removeMediaButton}
+                  onPress={() => handleRemoveMedia(media.id)}
+                >
+                  <Icon name="close" size={12} color={theme.colors.white} />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {uploadedMedia.length < 5 && (
+              <TouchableOpacity
+                style={styles.uploadButton}
+                activeOpacity={0.7}
+                onPress={handleSelectMedia}
+                disabled={uploadingMedia}
+              >
+                {uploadingMedia ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                ) : (
+                  <>
+                    <Icon name="camera-plus" size={24} color={theme.colors.primary} />
+                    <Text style={styles.uploadButtonText}>Thêm</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={styles.uploadSubtitle}>Tối đa 5 file (JPG, PNG, MP4)</Text>
         </View>
 
         {/* Settings */}
@@ -550,6 +754,26 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     marginLeft: SPACING.xs,
   },
+  tagList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+    borderRadius: BORDER_RADIUS.full,
+    gap: 6,
+  },
+  tagText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.text,
+    fontWeight: '500',
+  },
   priorityContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -602,6 +826,60 @@ const styles = StyleSheet.create({
   uploadSubtitle: {
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
+    marginTop: SPACING.xs,
+  },
+  mediaList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  mediaItem: {
+    width: (wp('100%') - SCREEN_PADDING.horizontal * 2 - SPACING.md * 2 - SPACING.sm * 2) / 3,
+    aspectRatio: 1,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
+  },
+  removeMediaButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  uploadButton: {
+    width: (wp('100%') - SCREEN_PADDING.horizontal * 2 - SPACING.md * 2 - SPACING.sm * 2) / 3,
+    aspectRatio: 1,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '05',
+  },
+  uploadButtonText: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.primary,
+    marginTop: 4,
+    fontWeight: '500',
   },
   switchRow: {
     flexDirection: 'row',

@@ -40,6 +40,7 @@ export const mapService = {
                 }
             );
             const data = await response.json();
+            console.log('Reverse geocoding response:', data);
             if (data.display_name) {
                 return data.display_name;
             }
