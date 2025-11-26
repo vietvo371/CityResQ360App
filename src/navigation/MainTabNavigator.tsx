@@ -69,6 +69,12 @@ import AgencyStatsScreen from '../screens/agencies/AgencyStatsScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
 import UserReportsScreen from '../screens/profile/UserReportsScreen';
 import UserStatsScreen from '../screens/profile/UserStatsScreen';
+import ChangePasswordLoggedInScreen from '../screens/profile/ChangePasswordLoggedInScreen';
+
+// Settings Module
+import LanguageSettingsScreen from '../screens/settings/LanguageSettingsScreen';
+import HelpCenterScreen from '../screens/settings/HelpCenterScreen';
+import AboutScreen from '../screens/settings/AboutScreen';
 
 // Placeholder component for screens that don't exist yet
 const PlaceholderScreen = ({ route }: any) => (
@@ -243,6 +249,12 @@ const MainNavigator = () => {
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         <Stack.Screen name="UserReports" component={UserReportsScreen} />
         <Stack.Screen name="UserStats" component={UserStatsScreen} />
+        <Stack.Screen name="ChangePasswordLoggedIn" component={ChangePasswordLoggedInScreen} />
+
+        {/* Settings Module */}
+        <Stack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
+        <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+        <Stack.Screen name="About" component={AboutScreen} />
       </Stack.Group>
     </Stack.Navigator>
   );

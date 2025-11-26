@@ -19,6 +19,7 @@ import {
 } from 'react-native-responsive-screen';
 import Animated, { FadeInDown, FadeInUp, SlideInDown } from 'react-native-reanimated';
 import { theme } from '../../theme/colors';
+import { authService } from '../../services/authService';
 import api from '../../utils/Api';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -47,10 +48,10 @@ const EmailVerificationScreen = () => {
         if (response.data?.status && response.data?.data) {
           const profileData = response.data.data;
           setEmail(profileData.email || '');
-          
+
           // Check if email is already verified
           const isEmailVerified = profileData.is_active_mail === 1;
-          
+
           setIsAlreadyVerified(isEmailVerified);
         }
       } catch (e) {
@@ -68,7 +69,7 @@ const EmailVerificationScreen = () => {
 
   const handleSendCode = async () => {
     if (!email) return;
-    
+
     setLoading(true);
     try {
       const response = await api.post('/auth/resend-otp', {
@@ -77,7 +78,7 @@ const EmailVerificationScreen = () => {
       });
 
       console.log('Send OTP response:', response.data);
-      
+
       if (response.data.status) {
         setIsCodeSent(true);
         setCountdown(60); // 60 seconds countdown
@@ -163,32 +164,20 @@ const EmailVerificationScreen = () => {
 
     setVerifying(true);
     try {
-      const response = await api.post('/auth/verify-email', {
-        email: email,
-        otp: otpString
-      });
+      // Use authService.verifyEmail with just the code
+      await authService.verifyEmail(otpString);
 
-      console.log('Verify OTP response:', response.data);
-      
-      if (response.data.status) {
-        Alert.alert(t('common.success'), t('emailVerification.emailVerifiedSuccess'), [
-          {
-            text: 'OK',
-            onPress: () => {
-              (navigation as any).goBack();
-            }
+      Alert.alert(t('common.success'), t('emailVerification.emailVerifiedSuccess'), [
+        {
+          text: 'OK',
+          onPress: () => {
+            (navigation as any).goBack();
           }
-        ]);
-      } else {
-        Alert.alert(t('common.error'), response.data.message || t('emailVerification.otpIncorrect'));
-        // Reset OTP on error
-        setOtp(['', '', '', '', '', '']);
-        setCode('');
-        setCurrentInputIndex(0);
-      }
-      
+        }
+      ]);
+
     } catch (error: any) {
-      console.log('Verify OTP error:', error);
+      console.log('Verify email error:', error);
       let errorMessage = t('emailVerification.otpIncorrect');
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -226,7 +215,7 @@ const EmailVerificationScreen = () => {
           <Text style={styles.verifiedEmailText}>{email}</Text>
         </View>
       )}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.backToProfileButton}
         onPress={() => (navigation as any).goBack()}
         activeOpacity={0.8}
@@ -272,7 +261,7 @@ const EmailVerificationScreen = () => {
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>{t('emailVerification.title')}</Text>
             <Text style={styles.headerSubtitle}>
-              {isCodeSent 
+              {isCodeSent
                 ? t('emailVerification.subtitleCodeSent')
                 : t('emailVerification.subtitle')
               }
@@ -307,8 +296,8 @@ const EmailVerificationScreen = () => {
                   <Text style={styles.emailDisplayText}>{email}</Text>
                 </View>
               )}
-              <TouchableOpacity 
-                style={[styles.sendCodeButton, loading && styles.disabledButton]} 
+              <TouchableOpacity
+                style={[styles.sendCodeButton, loading && styles.disabledButton]}
                 onPress={() => handleSendCode()}
                 disabled={loading}
                 activeOpacity={0.8}
@@ -338,7 +327,7 @@ const EmailVerificationScreen = () => {
                 {otp.map((digit, index) => {
                   const isActive = index === currentInputIndex;
                   const isFilled = Boolean(digit);
-                  
+
                   return (
                     <Animated.View
                       key={index}
@@ -388,7 +377,7 @@ const EmailVerificationScreen = () => {
                     {t('emailVerification.resendCodeAfter')} <Text style={styles.timer}>{countdown}s</Text>
                   </Text>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={handleResendCode}
                     style={styles.resendButton}
                     activeOpacity={0.7}

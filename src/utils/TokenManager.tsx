@@ -5,7 +5,7 @@ import Toast from "react-native-toast-message";
 
 export const saveToken = async (token: string) => {
     try {
-        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('@auth_token', token);
         console.log('Token saved successfully');
     } catch (error) {
         console.error('Error saving token:', error);
@@ -15,7 +15,7 @@ export const saveToken = async (token: string) => {
 
 export const getToken = async () => {
     try {
-        return await AsyncStorage.getItem('token');
+        return await AsyncStorage.getItem('@auth_token');
     } catch (error) {
         console.error('Error getting token:', error);
         return null;
@@ -24,7 +24,7 @@ export const getToken = async () => {
 
 export const removeToken = async () => {
     try {
-        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('@auth_token');
         console.log('Token removed successfully');
     } catch (error) {
         console.error('Error removing token:', error);
@@ -80,7 +80,7 @@ export const checkToken = async (navigation: NavigationProp<any>) => {
 }
 export const saveUser = async (user: any) => {
     try {
-        await AsyncStorage.setItem('user', JSON.stringify(user));
+        await AsyncStorage.setItem('@user_data', JSON.stringify(user));
         console.log('User saved successfully');
     } catch (error) {
         console.error('Error saving user:', error);
@@ -89,7 +89,7 @@ export const saveUser = async (user: any) => {
 }
 export const getUser = async () => {
     try {
-        const user = await AsyncStorage.getItem('user');
+        const user = await AsyncStorage.getItem('@user_data');
         return JSON.parse(user || '{}');
     } catch (error) {
         console.error('Error getting user:', error);
@@ -98,7 +98,7 @@ export const getUser = async () => {
 }
 export const removeUser = async () => {
     try {
-        await AsyncStorage.removeItem('user');
+        await AsyncStorage.removeItem('@user_data');
         console.log('User removed successfully');
     } catch (error) {
         console.error('Error removing user:', error);

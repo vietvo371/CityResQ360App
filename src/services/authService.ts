@@ -1,5 +1,5 @@
 import api from '../utils/Api';
-import { LoginRequest, LoginResponse, RegisterRequest, User, ChangePasswordRequest, ResetPasswordRequest } from '../types/api/auth';
+import { LoginRequest, LoginResponse, RegisterRequest, User, ChangePasswordRequest, ResetPasswordRequest, UpdateProfileRequest } from '../types/api/auth';
 import { ApiResponse } from '../types/api/common';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -61,6 +61,19 @@ export const authService = {
     // EXTENDED AUTH METHODS
     // ============================================================================
 
+    updateProfile: async (data: UpdateProfileRequest): Promise<User> => {
+        const response = await api.put<ApiResponse<User>>('/auth/profile', data);
+        console.log('Update profile response:', response.data);
+
+        if (response.data.success && response.data.data) {
+            // Update stored user data
+            await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.data.data));
+            return response.data.data;
+        }
+
+        throw new Error('Cập nhật thông tin thất bại');
+    },
+
     verifyEkyc: async (data: any): Promise<any> => {
         const response = await api.post('/auth/ekyc/verify', data);
         return response.data;
@@ -86,7 +99,18 @@ export const authService = {
         await api.post('/auth/verify-phone', { code });
     },
 
-    updateFcmToken: async (fcmToken: string): Promise<void> => {
-        await api.post('/auth/update-fcm-token', { fcm_token: fcmToken });
+    updateFcmToken: async (pushToken: string): Promise<void> => {
+        await api.post('/auth/update-fcm-token', { push_token: pushToken });
+    },
+
+    refreshToken: async (): Promise<string> => {
+        const response = await api.post<ApiResponse<{ token: string }>>('/auth/refresh');
+
+        if (response.data.success && response.data.data.token) {
+            await AsyncStorage.setItem(TOKEN_KEY, response.data.data.token);
+            return response.data.data.token;
+        }
+
+        throw new Error('Làm mới token thất bại');
     }
 };

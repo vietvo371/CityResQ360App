@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
   },
   inputDisabled: {
-    color: theme.colors.textLight,
+    color: theme.colors.disabled,
   },
   leftIcon: {
     marginLeft: theme.spacing.md,

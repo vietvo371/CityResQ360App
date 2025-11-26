@@ -14,6 +14,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../utils/Api';
+import { authService } from '../../services/authService';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -52,12 +53,12 @@ const PhoneVerificationScreen = () => {
         if (response.data?.status && response.data?.data) {
           const profileData = response.data.data;
           setPhone(profileData.number_phone || '');
-          
+
           // Check if phone is already verified
           // Assuming there's a field like phone_verified or verification_status
-          const isPhoneVerified = profileData.is_active_phone === 1 ;
-                               
-          
+          const isPhoneVerified = profileData.is_active_phone === 1;
+
+
           setIsAlreadyVerified(isPhoneVerified);
         }
       } catch (e) {
@@ -76,7 +77,7 @@ const PhoneVerificationScreen = () => {
   const handleSendCode = async (phoneNumber?: string) => {
     const phoneToUse = phoneNumber || phone;
     if (!phoneToUse) return;
-    
+
     setLoading(true);
     try {
       const response = await api.post('/auth/resend-otp', {
@@ -85,7 +86,7 @@ const PhoneVerificationScreen = () => {
       });
 
       console.log('Send OTP response:', response.data);
-      
+
       if (response.data.status) {
         setIsCodeSent(true);
         setCountdown(60); // 60 seconds countdown
@@ -222,38 +223,27 @@ const PhoneVerificationScreen = () => {
     setHasVerified(true);
     setVerifying(true);
     try {
-      const response = await api.post('/client/verify-phone', {
-        number_phone: phone,
-        otp: otpString
-      });
-      
-      if (response.data.status) {
-        Alert.alert(t('common.success'), t('phoneVerification.phoneVerifiedSuccess'), [
-          {
-            text: 'OK',
-            onPress: () => {
-              (navigation as any).goBack();
-            }
+      // Use authService.verifyPhone with just the code
+      await authService.verifyPhone(otpString);
+
+      Alert.alert(t('common.success'), t('phoneVerification.phoneVerifiedSuccess'), [
+        {
+          text: 'OK',
+          onPress: () => {
+            (navigation as any).goBack();
           }
-        ]);
-      } else {
-        Alert.alert(t('common.error'), response.data.message || t('phoneVerification.otpIncorrect'));
-        // Reset OTP on error
-        setOtp(['', '', '', '', '', '']);
-        setCode('');
-        setCurrentInputIndex(0);
-        setHasVerified(false);
-      }
-      
+        }
+      ]);
+
     } catch (error: any) {
-      console.log('Verify OTP error:', error);
+      console.log('Verify phone error:', error);
       let errorMessage = t('phoneVerification.otpIncorrect');
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      // Alert.alert(t('common.error'), errorMessage);
+      Alert.alert(t('common.error'), errorMessage);
       // Reset OTP on error
       setOtp(['', '', '', '', '', '']);
       setCode('');
@@ -285,7 +275,7 @@ const PhoneVerificationScreen = () => {
           <Text style={styles.verifiedPhoneText}>{phone}</Text>
         </View>
       )}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.backToProfileButton}
         onPress={() => (navigation as any).goBack()}
         activeOpacity={0.8}
@@ -331,7 +321,7 @@ const PhoneVerificationScreen = () => {
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>{t('phoneVerification.title')}</Text>
             <Text style={styles.headerSubtitle}>
-              {isCodeSent 
+              {isCodeSent
                 ? t('phoneVerification.subtitleCodeSent')
                 : t('phoneVerification.subtitle')
               }
@@ -366,8 +356,8 @@ const PhoneVerificationScreen = () => {
                   <Text style={styles.phoneDisplayText}>{phone}</Text>
                 </View>
               )}
-              <TouchableOpacity 
-                style={[styles.sendCodeButton, loading && styles.disabledButton]} 
+              <TouchableOpacity
+                style={[styles.sendCodeButton, loading && styles.disabledButton]}
                 onPress={() => handleSendCode()}
                 disabled={loading}
                 activeOpacity={0.8}
@@ -415,7 +405,7 @@ const PhoneVerificationScreen = () => {
                 {otp.map((digit, index) => {
                   const isActive = index === currentInputIndex;
                   const isFilled = Boolean(digit);
-                  
+
                   return (
                     <Animated.View
                       key={index}
@@ -465,7 +455,7 @@ const PhoneVerificationScreen = () => {
                     {t('phoneVerification.resendCodeAfter')} <Text style={styles.timer}>{countdown}s</Text>
                   </Text>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={handleResendCode}
                     style={styles.resendButton}
                     activeOpacity={0.7}

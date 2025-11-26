@@ -7,13 +7,16 @@ export interface User {
     ho_ten: string;
     email?: string;
     so_dien_thoai?: string;
-    anh_dai_dien?: string;
-    cap_huy_hieu?: number;
+    anh_dai_dien?: string | null;
+    vai_tro?: number; // 0 = citizen, 1 = government, etc.
+    diem_thanh_pho?: number; // City points
+    diem_uy_tin?: number; // Reputation points
+    cap_huy_hieu?: number; // Badge level
     cap_huy_hieu_text?: string;
-    diem_uy_tin?: number;
-    tong_so_phan_anh?: number;
-    ty_le_chinh_xac?: number;
-    ngay_tham_gia?: string;
+    xac_thuc_cong_dan?: boolean; // Citizen verification status
+    tong_so_phan_anh?: number; // Total reports
+    ty_le_chinh_xac?: number; // Accuracy rate
+    ngay_tham_gia?: string; // Join date
     role?: UserRole;
 }
 
@@ -37,6 +40,12 @@ export interface RegisterRequest {
     mat_khau_confirmation: string;
 }
 
+export interface UpdateProfileRequest {
+    ho_ten?: string;
+    so_dien_thoai?: string;
+    anh_dai_dien?: string; // base64 image or URL
+}
+
 export interface ChangePasswordRequest {
     mat_khau_cu: string;
     mat_khau_moi: string;
@@ -55,5 +64,5 @@ export interface VerifyCodeRequest {
 }
 
 export interface UpdateFcmTokenRequest {
-    fcm_token: string;
+    push_token: string; // Changed from fcm_token to push_token to match API
 }

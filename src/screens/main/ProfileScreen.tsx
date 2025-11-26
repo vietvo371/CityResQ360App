@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -13,50 +13,13 @@ import {
   wp,
   hp,
 } from '../../theme';
-import { walletService } from '../../services/walletService';
-import { reportService } from '../../services/reportService';
-import { WalletInfo } from '../../types/api/wallet';
-import { AlertService } from '../../services/AlertService';
+import ModalCustom from '../../component/ModalCustom';
 import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
-  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
-  const [reportCount, setReportCount] = useState(0);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [walletRes, reportsRes] = await Promise.all([
-          walletService.getWalletInfo(),
-          reportService.getMyReports({ per_page: 1 }) // Just to get total count if API supports meta, or fetch all? 
-          // Assuming getMyReports returns list. If pagination meta is needed, I should check common.ts.
-          // For now, let's assume I fetch list and count length or API returns meta.
-          // My reportService.getMyReports returns ApiResponse<Report[]>. 
-          // If I want count, I might need to fetch all or check if response has meta (which I didn't add to return type explicitly but it might be there).
-          // Let's just fetch a small page and hope for a total count in response or just fetch all if list is small.
-          // Or just fetch all for now.
-        ]);
-
-        if (walletRes.success) {
-          setWalletInfo(walletRes.data);
-        }
-
-        // For report count, if API doesn't return total in data, I might need to rely on something else.
-        // But let's assume for now I can just use the length of fetched reports or mock it if complex.
-        // Actually, let's try to fetch all for "my reports" as it shouldn't be huge for a demo.
-        const allReportsRes = await reportService.getMyReports();
-        if (allReportsRes.success) {
-          setReportCount(allReportsRes.data.length);
-        }
-      } catch (error) {
-        console.error('Error fetching profile stats:', error);
-      }
-    };
-
-    fetchStats();
-  }, []);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const menuItems = [
     {
@@ -78,23 +41,46 @@ const ProfileScreen = () => {
     }
   ];
 
-  const handleLogout = () => {
-    AlertService.confirm(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
-      async () => {
-        try {
-          await signOut();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          });
-        } catch (error) {
-          console.error('Logout error:', error);
-          AlertService.error('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
-        }
-      }
-    );
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setShowLogoutModal(false);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const handleMenuPress = (itemId: string) => {
+    switch (itemId) {
+      case 'profile':
+        (navigation as any).navigate('UserProfile', { userId: user?.id });
+        break;
+      case 'security':
+        (navigation as any).navigate('ChangePasswordLoggedIn');
+        break;
+      case 'kyc':
+        // TODO: Navigate to eKYC verification screen when implemented
+        console.log('Navigate to eKYC');
+        break;
+      case 'notifications':
+        (navigation as any).navigate('NotificationSettings');
+        break;
+      case 'language':
+        (navigation as any).navigate('LanguageSettings');
+        break;
+      case 'help':
+        (navigation as any).navigate('HelpCenter');
+        break;
+      case 'about':
+        (navigation as any).navigate('About');
+        break;
+      default:
+        break;
+    }
   };
 
   const formatPoints = (points: number) => {
@@ -131,20 +117,20 @@ const ProfileScreen = () => {
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{reportCount}</Text>
+              <Text style={styles.statValue}>{user?.tong_so_phan_anh || 0}</Text>
               <Text style={styles.statLabel}>Báo cáo</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
-                {walletInfo ? formatPoints(walletInfo.diem_thanh_pho) : '...'}
+                {user?.diem_thanh_pho ? formatPoints(user.diem_thanh_pho) : '0'}
               </Text>
               <Text style={styles.statLabel}>Điểm thưởng</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
-                {walletInfo ? walletInfo.diem_uy_tin : '...'}
+                {user?.diem_uy_tin || 0}
               </Text>
               <Text style={styles.statLabel}>Uy tín</Text>
             </View>
@@ -164,6 +150,7 @@ const ProfileScreen = () => {
                       styles.menuItem,
                       idx === section.items.length - 1 && styles.lastMenuItem
                     ]}
+                    onPress={() => handleMenuPress(item.id)}
                   >
                     <View style={styles.menuIconBox}>
                       <Icon name={item.icon} size={ICON_SIZE.md} color={theme.colors.text} />
@@ -178,13 +165,26 @@ const ProfileScreen = () => {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity style={styles.logoutButton} onPress={() => setShowLogoutModal(true)}>
           <Icon name="logout" size={ICON_SIZE.md} color={theme.colors.error} />
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionText}>Phiên bản 1.0.0</Text>
       </ScrollView>
+
+      {/* Logout Confirmation Modal */}
+      <ModalCustom
+        isModalVisible={showLogoutModal}
+        setIsModalVisible={setShowLogoutModal}
+        title="Đăng xuất"
+        onPressAction={handleLogout}
+
+      >
+        <Text style={styles.modalMessage}>
+          Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?
+        </Text>
+      </ModalCustom>
     </SafeAreaView>
   );
 };
@@ -340,6 +340,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
     marginBottom: SPACING.xl,
+  },
+  modalMessage: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.text,
+    textAlign: 'center',
+    paddingVertical: SPACING.lg,
+    lineHeight: 22,
   },
 });
 

@@ -87,6 +87,11 @@ export type RootStackParamList = {
   UserStats: {
     userId: number;
   };
+  ChangePasswordLoggedIn: undefined;
+  // Settings Module
+  LanguageSettings: undefined;
+  HelpCenter: undefined;
+  About: undefined;
 };
 
 export type StackScreen<T extends keyof RootStackParamList> = React.FC<NativeStackScreenProps<RootStackParamList, T>>;
