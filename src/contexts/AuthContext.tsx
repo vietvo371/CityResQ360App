@@ -1,12 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '../types/api/auth';
+import { User, UserRole } from '../types/api/auth';
 import { authService } from '../services/authService';
 import { EkycVerifyRequest, EkycVerifyResponse } from '../types/ekyc';
-import { authApi } from '../utils/authApi'; // Keep for legacy methods not yet migrated if any
-
-// ... (Keep existing interfaces for CityResQ360 features like NotificationPreferences, etc.)
-// We need to redefine AuthContextData to use the new User type
 
 // ============================================================================
 // TYPES - CityResQ360 User Roles & Data Structures
@@ -162,11 +158,11 @@ interface AuthContextData {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
-  userRole: string | null;
+  userRole: UserRole | null;
 
   // Auth Methods
   validateLogin: (identifier: string, password: string, isPhoneNumber: boolean) => LoginValidationResult;
-  signIn: (credentials: { identifier: string; password: string; type: 'email' | 'phone' }) => Promise<LoginResult>;
+  signIn: (credentials: { identifier: string; password: string; type: 'email' | 'phone'; remember?: boolean }) => Promise<LoginResult>;
   signUp: (userData: any) => Promise<void>;
   signOut: () => Promise<void>;
   verifyEkyc: (data: EkycVerifyRequest) => Promise<EkycVerifyResponse>;
@@ -233,11 +229,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const initializeApp = async () => {
     try {
-      await loadStoredUser();
-      await loadNotificationPreferences();
-      await loadCivicEngagement();
-      await loadGovernmentActivity();
-      await refreshAIInsights();
+      // Try to load stored token and validate it
+      const token = await authService.getToken();
+      if (token) {
+        try {
+          // Validate token by fetching profile
+          const userProfile = await authService.getProfile();
+          setUser(userProfile);
+
+          // Load other data only if authenticated
+          await Promise.all([
+            loadNotificationPreferences(),
+            loadCivicEngagement(),
+            loadGovernmentActivity(),
+            refreshAIInsights(),
+          ]);
+        } catch (error) {
+          console.log('Token invalid or expired:', error);
+          // Token is invalid, clear it
+          await signOut();
+        }
+      } else {
+        // No token, just load stored user (if any, though unlikely without token)
+        // or just finish loading
+        setUser(null);
+      }
     } catch (error) {
       console.log('Error initializing app:', error);
     } finally {
@@ -248,15 +264,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ============================================================================
   // AUTHENTICATION METHODS
   // ============================================================================
-
-  const loadStoredUser = async () => {
-    try {
-      const storedUser = await authService.getUser();
-      setUser(storedUser);
-    } catch (error) {
-      console.log('Error loading stored user:', error);
-    }
-  };
 
   const validateLogin = (identifier: string, password: string, isPhoneNumber: boolean): LoginValidationResult => {
     const errors: { identifier?: string; password?: string } = {};
@@ -285,21 +292,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  const signIn = async (credentials: { identifier: string; password: string; type: 'email' | 'phone' }): Promise<LoginResult> => {
+  const signIn = async (credentials: { identifier: string; password: string; type: 'email' | 'phone'; remember?: boolean }): Promise<LoginResult> => {
     try {
       console.log('Login attempt:', credentials.identifier);
 
+      // Map identifier to email as per Postman collection
       const response = await authService.login({
-        identifier: credentials.identifier,
-        password: credentials.password,
-        type: credentials.type
+        email: credentials.identifier,
+        mat_khau: credentials.password,
+        remember: credentials.remember
       });
 
       console.log('Login successful:', response);
 
       setUser(response.user);
 
-      // Load user's CityResQ360 data after sign in
+      // Load user's CityResQ360 data after sign inc
       await Promise.all([
         loadNotificationPreferences(),
         loadCivicEngagement(),
@@ -311,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         success: true,
       };
     } catch (error: any) {
-      console.log('Login error:', error);
+      console.log('Login error:', error.response?.data || error.message);
 
       let errorMessage = 'Login failed. Please try again.';
       const errors: { identifier?: string; password?: string } = {};
@@ -354,6 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setGovernmentActivity(null);
       setAIInsights(null);
 
+
       // Clear AsyncStorage
       await AsyncStorage.multiRemove([
         '@notification_preferences',
@@ -369,7 +378,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyEkyc = async (data: EkycVerifyRequest): Promise<EkycVerifyResponse> => {
     try {
-      return await authApi.verifyEkyc(data);
+      return await authService.verifyEkyc(data);
     } catch (error: any) {
       console.log('eKYC verification error:', error);
       throw error;

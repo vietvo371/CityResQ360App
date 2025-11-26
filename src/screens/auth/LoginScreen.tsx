@@ -43,6 +43,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string, password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   const validateForm = () => {
@@ -67,8 +68,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    navigation.navigate('MainTabs');
-
     if (!validateForm()) {
       return;
     }
@@ -80,14 +79,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         identifier: email,
         password: password,
         type: 'email',
+        remember: rememberMe,
       });
 
       if (result.success) {
+        console.log('Login successful:', result);
         // Login successful - navigate to main tabs
         navigation.navigate('MainTabs');
       } else {
         // Handle errors
         if (result.errors) {
+          console.log('Login errors:', result.errors);
           // Map identifier error to email field
           const mappedErrors: { email?: string; password?: string } = {};
           if (result.errors.identifier) {
@@ -218,20 +220,34 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 containerStyle={styles.input}
               />
 
+              {/* Remember Me & Forgot Password Row */}
+              <View style={styles.optionsRow}>
+                <TouchableOpacity
+                  style={styles.rememberMeContainer}
+                  onPress={() => setRememberMe(!rememberMe)}
+                  activeOpacity={0.7}
+                >
+                  <Icon
+                    name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"}
+                    size={24}
+                    color={rememberMe ? theme.colors.primary : theme.colors.textSecondary}
+                  />
+                  <Text style={styles.rememberMeText}>Nhớ mật khẩu</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                >
+                  <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              </View>
+
               <ButtonCustom
                 title="Đăng nhập"
                 onPress={handleLogin}
                 style={styles.loginButton}
                 icon="login"
               />
-
-              {/* Forgot Password */}
-              <TouchableOpacity
-                onPress={() => navigation.navigate('ForgotPassword')}
-                style={styles.forgotPasswordContainer}
-              >
-                <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
 
               {/* Social Login */}
               {/* <View style={styles.socialContainer}>
@@ -527,17 +543,28 @@ const styles = StyleSheet.create({
     height: BUTTON_HEIGHT.lg,
   },
 
-  // Forgot Password Styles
-  forgotPasswordContainer: {
-    alignItems: 'flex-end',
+  // Options Row (Remember Me & Forgot Password)
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SPACING.lg,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  rememberMeText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily,
   },
   forgotPasswordText: {
     fontSize: FONT_SIZE.sm,
-    color: theme.colors.textSecondary,
+    color: theme.colors.primary,
     fontFamily: theme.typography.fontFamily,
     fontWeight: theme.typography.fontWeight.semibold,
-    textDecorationLine: 'underline',
   },
 
   // Divider Styles

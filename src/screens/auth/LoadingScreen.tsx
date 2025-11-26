@@ -17,7 +17,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ navigation }) => {
     const checkLogin = async () => {
       try {
         await new Promise((resolve: any) => setTimeout(resolve, 1500));
-        const res = await api.get('/checklogin');
+        const res = await api.get('/check-login');
         if (res.data?.status) {
           // Check user role to navigate to correct tabs
           const userRole = res.data?.user?.role || res.data?.role || 'student';

@@ -19,7 +19,7 @@ interface PageHeaderProps {
   showNotification?: boolean;
   notificationCount?: number;
   onNotificationPress?: () => void;
-  variant?: 'home' | 'default' | 'featured';
+  variant?: 'home' | 'default' | 'featured' | 'public';
 
   // Navigation props
   onBack?: () => void;
@@ -109,7 +109,25 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     );
   }
 
-  // 3. Default Variant (Standard header for child screens)
+  // 3. Public Variant (Minimal header for auth screens - Login, Register, etc.)
+  if (variant === 'public') {
+    return (
+      <View style={[styles.publicHeader, style]}>
+        {showBack && (
+          <TouchableOpacity onPress={handleBack} style={styles.publicBackButton}>
+            <Icon name="arrow-left" size={ICON_SIZE.md} color={theme.colors.text} />
+          </TouchableOpacity>
+        )}
+        {rightComponent && (
+          <View style={styles.publicRightContainer}>
+            {rightComponent}
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // 4. Default Variant (Standard header for child screens)
   const shouldShowBack = showBack !== undefined ? showBack : true;
 
   return (
@@ -259,6 +277,31 @@ const styles = StyleSheet.create({
   },
   placeholderRight: {
     width: ICON_SIZE.lg,
+  },
+
+  // Public Variant (for auth screens)
+  publicHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    backgroundColor: 'transparent',
+  },
+  publicBackButton: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: theme.colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+  },
+  publicRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
 
   // Common Badge

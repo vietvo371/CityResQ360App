@@ -24,15 +24,36 @@ export interface LoginResponse {
 }
 
 export interface LoginRequest {
-    identifier: string; // email or phone
-    password: string;
-    type?: 'email' | 'phone';
+    email: string;
+    mat_khau: string;
+    remember?: boolean;
 }
 
 export interface RegisterRequest {
     ho_ten: string;
-    email?: string;
-    so_dien_thoai?: string;
+    email: string;
+    so_dien_thoai: string;
     mat_khau: string;
-    role?: UserRole;
+    mat_khau_confirmation: string;
+}
+
+export interface ChangePasswordRequest {
+    mat_khau_cu: string;
+    mat_khau_moi: string;
+    mat_khau_moi_confirmation: string;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    email: string;
+    mat_khau: string;
+    mat_khau_confirmation: string;
+}
+
+export interface VerifyCodeRequest {
+    code: string;
+}
+
+export interface UpdateFcmTokenRequest {
+    fcm_token: string;
 }

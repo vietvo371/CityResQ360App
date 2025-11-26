@@ -1,5 +1,5 @@
 import api from '../utils/Api';
-import { LoginRequest, LoginResponse, RegisterRequest, User } from '../types/api/auth';
+import { LoginRequest, LoginResponse, RegisterRequest, User, ChangePasswordRequest, ResetPasswordRequest } from '../types/api/auth';
 import { ApiResponse } from '../types/api/common';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -9,10 +9,11 @@ const USER_KEY = '@user_data';
 export const authService = {
     login: async (credentials: LoginRequest): Promise<LoginResponse> => {
         try {
-            const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', {
-                email: credentials.identifier,
-                mat_khau: credentials.password,
-            });
+            const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', credentials);
+
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Đăng nhập thất bại');
+            }
 
             const data = response.data.data;
             if (data.token) {
@@ -54,5 +55,38 @@ export const authService = {
     getUser: async (): Promise<User | null> => {
         const json = await AsyncStorage.getItem(USER_KEY);
         return json ? JSON.parse(json) : null;
+    },
+
+    // ============================================================================
+    // EXTENDED AUTH METHODS
+    // ============================================================================
+
+    verifyEkyc: async (data: any): Promise<any> => {
+        const response = await api.post('/auth/ekyc/verify', data);
+        return response.data;
+    },
+
+    changePassword: async (data: ChangePasswordRequest): Promise<void> => {
+        await api.post('/auth/change-password', data);
+    },
+
+    requestPasswordReset: async (email: string): Promise<void> => {
+        await api.post('/auth/forgot-password', { email });
+    },
+
+    resetPassword: async (data: ResetPasswordRequest): Promise<void> => {
+        await api.post('/auth/reset-password', data);
+    },
+
+    verifyEmail: async (code: string): Promise<void> => {
+        await api.post('/auth/verify-email', { code });
+    },
+
+    verifyPhone: async (code: string): Promise<void> => {
+        await api.post('/auth/verify-phone', { code });
+    },
+
+    updateFcmToken: async (fcmToken: string): Promise<void> => {
+        await api.post('/auth/update-fcm-token', { fcm_token: fcmToken });
     }
 };

@@ -70,7 +70,7 @@ const getCurrentLocation = (): Promise<LocationData | null> => {
         };
         cachedLocation = location;
         locationCacheTime = now;
-        
+
         resolve(location);
       },
       (error) => {
@@ -78,10 +78,10 @@ const getCurrentLocation = (): Promise<LocationData | null> => {
           lat: 16.068882,
           long: 108.245350,
         };
-        
+
         cachedLocation = defaultLocation;
         locationCacheTime = now;
-        
+
         resolve(defaultLocation);
       },
       {
@@ -120,7 +120,7 @@ api.interceptors.request.use(async (config) => {
     console.log('token', token);
     config.headers.Authorization = `Bearer ${token}`;
   }
-  
+
   getCurrentLocation().then((location) => {
     if (location) {
       config.headers['x-location'] = JSON.stringify(location);
@@ -152,50 +152,58 @@ api.interceptors.response.use(
   },
   async (error: any) => {
     const config = error.config;
-    
+
     config.retryCount = config.retryCount || 0;
-    
+
     if (shouldRetry(error, config.retryCount)) {
       config.retryCount += 1;
       const delayMs = Math.min(1000 * (2 ** config.retryCount), 10000);
       await new Promise<void>(resolve => setTimeout(resolve, delayMs));
-      
+
       return api(config);
     }
 
-    if (error.code === 'ECONNABORTED' || /timeout/i.test(error.message)) {
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
       console.log('Timeout after retries:', error);
-      removeToken(); 
+      removeToken();
       ErrorModalManager.showTimeoutError(() => {
         resetTo('Login');
       });
-      return ;
-    }
-
-    if (error.response?.status === 422) {
       return Promise.reject(error);
     }
 
+    if (error.response?.status === 422) {
+      console.log('Validation error:', error.response.data);
+      return Promise.reject(error);
+    }
+
+    // For 401/403 errors
     if (error.response?.status === 401 || error.response?.status === 403) {
-      removeToken();
-      if (!isShowingAuthAlert) {
-        isShowingAuthAlert = true;
-        
-        if (error.response?.status === 401) {
-          ErrorModalManager.showSessionExpired(() => {
-            isShowingAuthAlert = false;
-            resetTo('Login');
-          });
-        } else {
-          ErrorModalManager.showAccessDenied(() => {
-            isShowingAuthAlert = false;
-            resetTo('Login');
-          });
+      // Check if this is a login request - don't show modal for login failures
+      const isLoginRequest = config.url?.includes('/auth/login');
+
+      if (!isLoginRequest) {
+        // Only remove token and show modal for authenticated requests that fail
+        removeToken();
+        if (!isShowingAuthAlert) {
+          isShowingAuthAlert = true;
+
+          if (error.response?.status === 401) {
+            ErrorModalManager.showSessionExpired(() => {
+              isShowingAuthAlert = false;
+              resetTo('Login');
+            });
+          } else {
+            ErrorModalManager.showAccessDenied(() => {
+              isShowingAuthAlert = false;
+              resetTo('Login');
+            });
+          }
         }
       }
-      
-      // return Promise.reject(error);
-      return;
+
+      // Always reject the error so the caller can handle it
+      return Promise.reject(error);
     }
 
     console.log('API error after retries:', {

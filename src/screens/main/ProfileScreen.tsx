@@ -16,8 +16,11 @@ import {
 import { walletService } from '../../services/walletService';
 import { reportService } from '../../services/reportService';
 import { WalletInfo } from '../../types/api/wallet';
+import { AlertService } from '../../services/AlertService';
+import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
+  const navigation = useNavigation();
   const { user, signOut } = useAuth();
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [reportCount, setReportCount] = useState(0);
@@ -74,6 +77,25 @@ const ProfileScreen = () => {
       ]
     }
   ];
+
+  const handleLogout = () => {
+    AlertService.confirm(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
+      async () => {
+        try {
+          await signOut();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        } catch (error) {
+          console.error('Logout error:', error);
+          AlertService.error('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
+        }
+      }
+    );
+  };
 
   const formatPoints = (points: number) => {
     return points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -156,7 +178,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Icon name="logout" size={ICON_SIZE.md} color={theme.colors.error} />
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>

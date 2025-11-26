@@ -26,7 +26,7 @@ import InputCustom from '../../component/InputCustom';
 import ButtonCustom from '../../component/ButtonCustom';
 import LoadingOverlay from '../../component/LoadingOverlay';
 import LanguageSelector from '../../component/LanguageSelector';
-import api from '../../utils/Api';
+import { authService } from '../../services/authService';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface ForgotPasswordScreenProps {
@@ -58,30 +58,22 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
     try {
-      // CityResQ360 API format
-      const response = await api.post('/auth/forgot-password', {
-        email: email,
+      // Use authService to request password reset
+      await authService.requestPasswordReset(email);
+
+      // If successful (no error thrown), navigate to OTP verification
+      navigation.navigate('OTPVerification', {
+        identifier: email,
+        type: 'email',
+        flow: 'forgot',
       });
 
-      console.log('Send OTP response:', response.data);
-
-      if (response.data.success) {
-        navigation.navigate('OTPVerification', {
-          identifier: email,
-          type: 'email',
-          flow: 'forgot',
-        });
-      } else {
-        setErrors({
-          email: response.data.message || 'Email không tồn tại trong hệ thống'
-        });
-      }
     } catch (error: any) {
       console.log('Forgot password error:', error);
-      
+
       if (error.response?.data?.errors) {
         const newErrors: Record<string, string> = {};
         Object.keys(error.response.data.errors).forEach(field => {
@@ -125,8 +117,8 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             style={styles.headerIconButton}
             onPress={() => setShowLanguageSelector(true)}
           >
-            <Image 
-              source={getCurrentLanguage() === 'vi' 
+            <Image
+              source={getCurrentLanguage() === 'vi'
                 ? require('../../assets/images/logo_vietnam.jpg')
                 : require('../../assets/images/logo_eng.png')
               }

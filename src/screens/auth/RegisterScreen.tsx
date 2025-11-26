@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,8 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { AlertService } from '../../services/AlertService';
 import Animated, { FadeInDown, FadeInUp, SlideInDown } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -18,19 +18,19 @@ import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../../theme/responsive';
 import InputCustom from '../../component/InputCustom';
 import ButtonCustom from '../../component/ButtonCustom';
 import LoadingOverlay from '../../component/LoadingOverlay';
-import api from '../../utils/Api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface RegisterScreenProps {
   navigation: any;
 }
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
+  const { signUp } = useAuth();
 
   const initialFormData = {
     name: '',
     email: '',
     phone: '',
-    address: '',
     password: '',
     re_password: '',
   };
@@ -49,7 +49,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
@@ -69,11 +68,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   const validateStep2 = () => {
     const nameError = validateField('name', formData.name);
-    const addressError = validateField('address', formData.address);
 
     const newErrors = {
       ...(nameError ? { full_name: nameError } : {}),
-      ...(addressError ? { address: addressError } : {})
     };
 
     setErrors(newErrors);
@@ -134,26 +131,19 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      // CityResQ360 API format - theo API docs
-      const response = await api.post('/auth/register', {
+      // Use signUp from AuthContext
+      await signUp({
         ho_ten: formData.name,
         email: formData.email,
         mat_khau: formData.password,
         mat_khau_confirmation: formData.re_password,
         so_dien_thoai: formData.phone,
       });
-      
-      // Xử lý response theo API docs format
-      if (!response.data.success) {
-        Alert.alert('Đăng ký thất bại', response.data.message || 'Vui lòng thử lại');
-        return;
-      }
-      
+
       // Reset form before navigating
       resetForm();
-      
-      // Response format: { success: true, message: "...", data: { user: {...}, token: "..." } }
-      Alert.alert('Đăng ký thành công', response.data.message || 'Tài khoản của bạn đã được tạo thành công',
+
+      AlertService.success('Đăng ký thành công', 'Tài khoản của bạn đã được tạo thành công',
         [
           {
             text: 'Xác nhận',
@@ -164,7 +154,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           }
         ]
       );
-     
+
     } catch (error: any) {
       console.log('Registration error:', error.response);
       if (error.response?.data?.errors) {
@@ -179,18 +169,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         const newErrors: Record<string, string> = {};
         Object.entries(error.response.data.errors).forEach(([field, messages]) => {
           const mappedField = fieldMapping[field] || field;
-          const errorMessage = Array.isArray(messages) ? messages[0] : messages;
+          const errorMessage = Array.isArray(messages) ? messages[0] : messages as string;
           newErrors[mappedField] = errorMessage;
         });
 
         setErrors(newErrors);
-        
+
         const step1Fields = ['email', 'number_phone'];
-        const step2Fields = ['full_name', 'address'];
+        const step2Fields = ['full_name'];
         const step3Fields = ['password', 're_password'];
-        
+
         const errorFields = Object.keys(newErrors);
-        
+
         if (errorFields.some(field => step1Fields.includes(field))) {
           setCurrentStep(1);
         } else if (errorFields.some(field => step2Fields.includes(field))) {
@@ -200,21 +190,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         }
 
       } else if (error.response?.data?.message) {
-        const currentStepFirstField = currentStep === 1 ? 'email' : 
+        const currentStepFirstField = currentStep === 1 ? 'email' :
           currentStep === 2 ? 'full_name' : 'password';
 
         setErrors({
           [currentStepFirstField]: error.response.data.message
         });
       } else if (error.message) {
-        const currentStepFirstField = currentStep === 1 ? 'email' : 
+        const currentStepFirstField = currentStep === 1 ? 'email' :
           currentStep === 2 ? 'full_name' : 'password';
 
         setErrors({
           [currentStepFirstField]: error.message
         });
       } else {
-        const currentStepFirstField = currentStep === 1 ? 'email' : 
+        const currentStepFirstField = currentStep === 1 ? 'email' :
           currentStep === 2 ? 'full_name' : 'password';
 
         setErrors({
@@ -228,7 +218,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   const validateField = (field: string, value: string) => {
     let error = '';
-    
+
     switch (field) {
       case 'email':
         if (!value) {
@@ -254,12 +244,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         }
         break;
 
-      case 'address':
-        if (!value) {
-          error = 'Vui lòng nhập địa chỉ';
-        }
-        break;
-
       case 'password':
         if (!value) {
           error = 'Vui lòng nhập mật khẩu';
@@ -282,7 +266,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   const updateFormData = (key: string, value: string | Date) => {
     setFormData(prev => ({ ...prev, [key]: value }));
-    
+
     if (typeof value === 'string') {
       const error = validateField(key, value);
       setErrors(prev => ({ ...prev, [key]: error }));
@@ -345,17 +329,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         error={errors.full_name}
         required
         leftIcon="account-outline"
-        containerStyle={styles.input}
-      />
-
-      <InputCustom
-        label="Địa chỉ"
-        placeholder="Nhập địa chỉ"
-        value={formData.address}
-        onChangeText={value => updateFormData('address', value)}
-        error={errors.address}
-        required
-        leftIcon="map-marker-outline"
         containerStyle={styles.input}
       />
     </View>
@@ -552,7 +525,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       </KeyboardAvoidingView>
 
       <LoadingOverlay visible={loading} message="Đang đăng ký tài khoản..." />
-      
+
     </SafeAreaView>
   );
 };
@@ -626,7 +599,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: FONT_SIZE.md,
-    color: theme.colors.textLight,  
+    color: theme.colors.textLight,
     fontFamily: theme.typography.fontFamily,
     marginBottom: SPACING.xs,
   },

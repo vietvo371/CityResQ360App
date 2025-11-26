@@ -96,12 +96,7 @@ const WalletScreen = () => {
               <Text style={styles.cardLabel}>Tổng điểm tích lũy</Text>
               <Text style={styles.cardSubLabel}>CityResQ360 Rewards</Text>
             </View>
-            <View style={styles.rankBadge}>
-              <Icon name="crown" size={14} color="#FFD700" />
-              <Text style={styles.rankText} numberOfLines={1}>
-                {walletInfo?.cap_huy_hieu_text || 'Thành viên'}
-              </Text>
-            </View>
+
           </View>
 
           <View style={styles.cardBody}>
