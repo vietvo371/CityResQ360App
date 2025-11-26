@@ -18,21 +18,53 @@ export const reportService = {
         return response.data;
     },
 
+    updateReport: async (id: number, data: Partial<CreateReportRequest>): Promise<ApiResponse<Report>> => {
+        const response = await api.put<ApiResponse<Report>>(`/reports/${id}`, data);
+        return response.data;
+    },
+
+    deleteReport: async (id: number): Promise<ApiResponse<void>> => {
+        const response = await api.delete<ApiResponse<void>>(`/reports/${id}`);
+        return response.data;
+    },
+
     getMyReports: async (params?: ReportFilterParams): Promise<ApiResponse<Report[]>> => {
         const response = await api.get<ApiResponse<Report[]>>('/reports/my', { params });
         return response.data;
     },
 
-    getNearbyReports: async (lat: number, long: number, radius: number = 5): Promise<ApiResponse<Report[]>> => {
+    getNearbyReports: async (lat: number, long: number, radius: number = 5000): Promise<ApiResponse<Report[]>> => {
+        // radius in meters (default 5000m = 5km)
         const response = await api.get<ApiResponse<Report[]>>('/reports/nearby', {
             params: { vi_do: lat, kinh_do: long, radius }
         });
         return response.data;
     },
 
+    getTrendingReports: async (limit: number = 10): Promise<ApiResponse<Report[]>> => {
+        const response = await api.get<ApiResponse<Report[]>>('/reports/trending', {
+            params: { limit }
+        });
+        return response.data;
+    },
+
     voteReport: async (id: number, type: 'upvote' | 'downvote'): Promise<ApiResponse<any>> => {
-        const loai_binh_chon = type === 'upvote' ? 1 : -1;
-        const response = await api.post<ApiResponse<any>>(`/reports/${id}/vote`, { loai_binh_chon });
+        // API uses "ung_ho" or "khong_ung_ho"
+        const loai_vote = type === 'upvote' ? 'ung_ho' : 'khong_ung_ho';
+        const response = await api.post<ApiResponse<any>>(`/reports/${id}/vote`, { loai_vote });
+        return response.data;
+    },
+
+    incrementView: async (id: number): Promise<ApiResponse<void>> => {
+        const response = await api.post<ApiResponse<void>>(`/reports/${id}/view`);
+        return response.data;
+    },
+
+    rateReport: async (id: number, rating: number): Promise<ApiResponse<void>> => {
+        // API uses diem_so (1-5 stars)
+        const response = await api.post<ApiResponse<void>>(`/reports/${id}/rate`, {
+            diem_so: rating
+        });
         return response.data;
     }
 };

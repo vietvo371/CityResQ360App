@@ -35,6 +35,7 @@ interface InputCustomProps {
   labelStyle?: TextStyle;
   subLabel?: string;
   onPress?: () => void;
+  maxLength?: number;
 }
 
 const InputCustom: React.FC<InputCustomProps> = ({
@@ -55,6 +56,7 @@ const InputCustom: React.FC<InputCustomProps> = ({
   multiline = false,
   numberOfLines = 1,
   onPress,
+  maxLength,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
@@ -120,6 +122,7 @@ const InputCustom: React.FC<InputCustomProps> = ({
       editable={editable}
       multiline={multiline}
       numberOfLines={numberOfLines}
+      maxLength={maxLength}
     />
   );
 
