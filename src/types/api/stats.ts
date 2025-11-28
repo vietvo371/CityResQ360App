@@ -43,17 +43,17 @@ export interface LeaderboardEntry {
     accuracy_rate: number;
 }
 
+export interface TopCategoryStats {
+    danh_muc: number;
+    danh_muc_text: string;
+    total: number;
+}
+
 export interface CityStats {
-    total_reports: number;
-    total_users: number;
-    active_reports: number;
-    resolved_reports: number;
-    total_votes: number;
-    avg_resolution_time: number; // in hours
-    categories: CategoryStats[];
-    recent_activity: {
-        today: number;
-        this_week: number;
-        this_month: number;
-    };
+    tong_phan_anh: number;  // Total reports
+    da_giai_quyet: number;  // Resolved reports
+    dang_xu_ly: number;     // In progress reports
+    ty_le_giai_quyet: number;  // Resolution rate percentage
+    thoi_gian_xu_ly_trung_binh: number;  // Average processing time in hours
+    top_danh_muc: TopCategoryStats[];  // Top categories
 }

@@ -31,6 +31,7 @@ const ReportDetailScreen = () => {
   const fetchReportDetail = useCallback(async () => {
     try {
       const response = await reportService.getReportDetail(id);
+      console.log('Report detail:', response);
       if (response.success) {
         setReport(response.data);
       }
@@ -49,7 +50,8 @@ const ReportDetailScreen = () => {
 
   const handleVote = async (type: 'upvote' | 'downvote') => {
     try {
-      await reportService.voteReport(id, type);
+      const response = await reportService.voteReport(id, type);
+      console.log('Vote response:', response);
       // Refresh to get updated counts (optional, as VoteButtons handles optimistic UI)
     } catch (error) {
       console.error('Vote error:', error);
@@ -62,6 +64,7 @@ const ReportDetailScreen = () => {
     try {
       setSubmitting(true);
       const response = await commentService.addComment(id, commentText);
+      console.log('Comment response:', response);
       if (response.success) {
         setCommentText('');
         fetchReportDetail();
@@ -77,6 +80,7 @@ const ReportDetailScreen = () => {
     try {
       setSubmittingRating(true);
       const response = await reportService.rateReport(id, rating);
+      console.log('Rate response:', response);
       if (response.success) {
         setShowRatingModal(false);
         setShowSuccessModal(true);
@@ -365,7 +369,7 @@ const ReportDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,

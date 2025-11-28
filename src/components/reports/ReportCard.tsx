@@ -34,7 +34,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
 
     const getStatusColor = (status: number) => {
         switch (status) {
-            case 0: return theme.colors.textSecondary; // Chờ xử lý
+            case 0: return '#4B5563'; // Chờ xử lý - Gray 600
             case 1: return theme.colors.info;          // Đã xác nhận
             case 2: return theme.colors.warning;       // Đang xử lý
             case 3: return theme.colors.success;       // Đã giải quyết
@@ -80,6 +80,35 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
         }
     };
 
+    const formatAiTag = (tag: string | string[] | null | undefined): string => {
+        if (!tag) return '';
+        // If it's an array, take the last item (usually the most specific tag) or join them
+        // Based on screenshot "otherstreetlight", it seems to be a single string or we want the specific part
+        let tagStr = '';
+        if (Array.isArray(tag)) {
+            tagStr = tag.length > 0 ? tag[tag.length - 1] : '';
+        } else {
+            tagStr = tag;
+        }
+
+        // Map common tags to Vietnamese
+        const tagMap: Record<string, string> = {
+            'otherstreetlight': 'Đèn đường',
+            'otherviolation': 'Vi phạm trật tự',
+            'pothole': 'Hư hỏng đường bộ',
+            'flood': 'Ngập lụt',
+            'trash': 'Rác thải',
+            'fire': 'Cháy nổ',
+            'accident': 'Tai nạn giao thông',
+            'construction': 'Công trình xây dựng',
+            'noise': 'Tiếng ồn',
+            'tree': 'Cây xanh',
+            'other': 'Khác'
+        };
+
+        return tagMap[tagStr] || tagStr;
+    };
+
     // Get category name and color from nested object or ID
     const categoryName = report.danh_muc?.ten_danh_muc || 'Khác';
     const categoryColor = report.danh_muc?.mau_sac || getCategoryColor(report.danh_muc_id);
@@ -107,8 +136,8 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
                     </View>
                 </View>
                 <View style={styles.badges}>
-                    <View style={[styles.badge, { backgroundColor: categoryColor + '20' }]}>
-                        <Text style={[styles.badgeText, { color: categoryColor }]}>
+                    <View style={[styles.badge, { backgroundColor: '#F3F4F6' }]}>
+                        <Text style={[styles.badgeText, { color: '#6B7280' }]}>
                             {categoryName}
                         </Text>
                     </View>
@@ -177,8 +206,8 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
             {/* AI Tags */}
             {report.nhan_ai && (
                 <View style={styles.aiTag}>
-                    <Icon name="robot" size={14} color={theme.colors.info} />
-                    <Text style={styles.aiTagText}>{report.nhan_ai}</Text>
+                    <Icon name="robot" size={16} color={theme.colors.primary} />
+                    <Text style={styles.aiTagText}>{formatAiTag(report.nhan_ai)}</Text>
                     {report.do_tin_cay && (
                         <Text style={styles.confidenceText}>
                             {Math.round(report.do_tin_cay * 100)}%
@@ -367,7 +396,7 @@ const styles = StyleSheet.create({
     },
     aiTagText: {
         fontSize: FONT_SIZE.xs,
-        color: theme.colors.info,
+        color: theme.colors.primary,
         fontWeight: '600',
         flex: 1,
     },

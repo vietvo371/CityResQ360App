@@ -19,7 +19,7 @@ interface PageHeaderProps {
   showNotification?: boolean;
   notificationCount?: number;
   onNotificationPress?: () => void;
-  variant?: 'home' | 'default' | 'featured' | 'public';
+  variant?: 'home' | 'default' | 'featured' | 'public' | 'gradient';
 
   // Navigation props
   onBack?: () => void;
@@ -82,11 +82,16 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     );
   }
 
-  // 2. Featured Variant (Gradient background for special screens)
-  if (variant === 'featured') {
+  // 2. Featured/Gradient Variant (Gradient background for special screens)
+  if (variant === 'featured' || variant === 'gradient') {
     return (
       <View style={[styles.featuredWrapper, style]}>
         <View style={styles.featuredContent}>
+          {showBack && (
+            <TouchableOpacity onPress={handleBack} style={styles.gradientBackButton}>
+              <Icon name="arrow-left" size={ICON_SIZE.md} color={theme.colors.white} />
+            </TouchableOpacity>
+          )}
           <View style={styles.textWrapper}>
             <Text style={styles.featuredTitle}>{title}</Text>
             {subtitle && <Text style={styles.featuredSubtitle}>{subtitle}</Text>}
@@ -302,6 +307,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+
+  gradientBackButton: {
+    marginRight: SPACING.md,
   },
 
   // Common Badge

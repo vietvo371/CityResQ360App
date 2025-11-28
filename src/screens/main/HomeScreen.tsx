@@ -29,10 +29,19 @@ import { Report } from '../../types/api/report';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+interface TopCategory {
+  danh_muc: number;
+  danh_muc_text: string;
+  total: number;
+}
+
 interface StatsData {
-  total_reports: number;
-  verified_reports: number;
-  in_progress_reports: number;
+  tong_phan_anh: number;
+  da_giai_quyet: number;
+  dang_xu_ly: number;
+  ty_le_giai_quyet?: number;
+  thoi_gian_xu_ly_trung_binh?: number;
+  top_danh_muc?: TopCategory[];
 }
 
 const HomeScreen = () => {
@@ -48,11 +57,15 @@ const HomeScreen = () => {
     try {
       // Fetch stats
       const statsResponse = await statsService.getCityStats();
+      console.log('statsResponse', statsResponse);
       if (statsResponse.success) {
         setStatsData({
-          total_reports: statsResponse.data.total_reports || 0,
-          verified_reports: statsResponse.data.resolved_reports || 0,
-          in_progress_reports: statsResponse.data.active_reports || 0,
+          tong_phan_anh: statsResponse.data.tong_phan_anh || 0,
+          da_giai_quyet: statsResponse.data.da_giai_quyet || 0,
+          dang_xu_ly: statsResponse.data.dang_xu_ly || 0,
+          ty_le_giai_quyet: statsResponse.data.ty_le_giai_quyet,
+          thoi_gian_xu_ly_trung_binh: statsResponse.data.thoi_gian_xu_ly_trung_binh,
+          top_danh_muc: statsResponse.data.top_danh_muc,
         });
       }
 
@@ -63,6 +76,7 @@ const HomeScreen = () => {
         sort_by: 'created_at',
         sort_order: 'desc'
       });
+      console.log('reportsResponse', reportsResponse);
       if (reportsResponse.success && reportsResponse.data) {
         setRecentReports(reportsResponse.data);
       }
@@ -149,7 +163,7 @@ const HomeScreen = () => {
       return [
         {
           id: 'total',
-          title: 'Tổng sự cố',
+          title: 'Tổng phản ánh',
           value: '---',
           change: '--',
           trend: 'up' as const,
@@ -158,7 +172,7 @@ const HomeScreen = () => {
         },
         {
           id: 'resolved',
-          title: 'Đã xử lý',
+          title: 'Đã giải quyết',
           value: '---',
           change: '--',
           trend: 'up' as const,
@@ -177,21 +191,25 @@ const HomeScreen = () => {
       ];
     }
 
+    const resolvedPercentage = statsData.ty_le_giai_quyet
+      ? `${statsData.ty_le_giai_quyet.toFixed(1)}%`
+      : '--';
+
     return [
       {
         id: 'total',
-        title: 'Tổng sự cố',
-        value: formatNumber(statsData.total_reports),
-        change: '12%',
+        title: 'Tổng phản ánh',
+        value: formatNumber(statsData.tong_phan_anh),
+        change: resolvedPercentage,
         trend: 'up' as const,
         icon: 'alert-circle-outline',
         color: theme.colors.primary,
       },
       {
         id: 'resolved',
-        title: 'Đã xử lý',
-        value: formatNumber(statsData.verified_reports),
-        change: '8%',
+        title: 'Đã giải quyết',
+        value: formatNumber(statsData.da_giai_quyet),
+        change: resolvedPercentage,
         trend: 'up' as const,
         icon: 'check-circle-outline',
         color: theme.colors.success,
@@ -199,8 +217,10 @@ const HomeScreen = () => {
       {
         id: 'pending',
         title: 'Đang xử lý',
-        value: formatNumber(statsData.in_progress_reports),
-        change: '5%',
+        value: formatNumber(statsData.dang_xu_ly),
+        change: statsData.thoi_gian_xu_ly_trung_binh
+          ? `${Math.round(statsData.thoi_gian_xu_ly_trung_binh)}h`
+          : '--',
         trend: 'down' as const,
         icon: 'progress-clock',
         color: theme.colors.warning,
@@ -398,6 +418,50 @@ const HomeScreen = () => {
             ))}
           </View>
         </View>
+
+        {/* Top Categories Section */}
+        {statsData?.top_danh_muc && statsData.top_danh_muc.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Danh mục phổ biến</Text>
+            <View style={styles.categoryList}>
+              {statsData.top_danh_muc.slice(0, 5).map((category, index) => {
+                const percentage = statsData.tong_phan_anh > 0
+                  ? ((category.total / statsData.tong_phan_anh) * 100).toFixed(1)
+                  : '0';
+                return (
+                  <View key={category.danh_muc} style={styles.categoryItem}>
+                    <View style={styles.categoryLeft}>
+                      <View style={[styles.categoryRank, {
+                        backgroundColor: index === 0 ? theme.colors.primary + '15' : theme.colors.backgroundSecondary
+                      }]}>
+                        <Text style={[styles.categoryRankText, {
+                          color: index === 0 ? theme.colors.primary : theme.colors.textSecondary
+                        }]}>
+                          {index + 1}
+                        </Text>
+                      </View>
+                      <View style={styles.categoryInfo}>
+                        <Text style={styles.categoryName}>{category.danh_muc_text}</Text>
+                        <View style={styles.categoryProgressBar}>
+                          <View
+                            style={[styles.categoryProgress, {
+                              width: percentage + '%' as any,
+                              backgroundColor: getCategoryColor(category.danh_muc)
+                            }]}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.categoryRight}>
+                      <Text style={styles.categoryCount}>{category.total}</Text>
+                      <Text style={styles.categoryPercentage}>{percentage}%</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Recent Incidents List */}
         <View style={styles.section}>
@@ -730,6 +794,69 @@ const styles = StyleSheet.create({
   systemStatusText: {
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
+  },
+  categoryList: {
+    gap: SPACING.sm,
+  },
+  categoryItem: {
+    backgroundColor: theme.colors.white,
+    borderRadius: BORDER_RADIUS.md,
+    padding: CARD.paddingSmall,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+    marginBottom: SPACING.sm,
+  },
+  categoryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: SPACING.sm,
+  },
+  categoryRank: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryRankText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+  },
+  categoryInfo: {
+    flex: 1,
+  },
+  categoryName: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  categoryProgressBar: {
+    height: 4,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  categoryProgress: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  categoryRight: {
+    alignItems: 'flex-end',
+    marginLeft: SPACING.sm,
+  },
+  categoryCount: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  categoryPercentage: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
 });
 

@@ -11,6 +11,13 @@ export interface FilterOptions {
     sort_order?: 'asc' | 'desc';
 }
 
+export interface ReportFilterModalProps {
+    visible: boolean;
+    onClose: () => void;
+    filters: FilterOptions;
+    onApply: (filters: FilterOptions) => void;
+}
+
 interface ReportFiltersProps {
     filters: FilterOptions;
     onFiltersChange: (filters: FilterOptions) => void;
@@ -18,28 +25,29 @@ interface ReportFiltersProps {
 
 const CATEGORIES = [
     { value: -1, label: 'Tất cả danh mục' },
-    { value: 0, label: 'Giao thông', icon: 'car', color: theme.colors.primary },
-    { value: 1, label: 'Môi trường', icon: 'leaf', color: theme.colors.success },
-    { value: 2, label: 'Cháy nổ', icon: 'fire', color: theme.colors.error },
-    { value: 3, label: 'Rác thải', icon: 'trash-can', color: theme.colors.warning },
-    { value: 4, label: 'Ngập lụt', icon: 'weather-pouring', color: theme.colors.info },
+    { value: 1, label: 'Giao thông', icon: 'car', color: theme.colors.primary },
+    { value: 2, label: 'Môi trường', icon: 'leaf', color: theme.colors.success },
+    { value: 3, label: 'Cháy nổ', icon: 'fire', color: theme.colors.error },
+    { value: 4, label: 'Rác thải', icon: 'trash-can', color: theme.colors.warning },
+    { value: 5, label: 'Ngập lụt', icon: 'weather-pouring', color: theme.colors.info },
+    { value: 6, label: 'Khác', icon: 'dots-horizontal', color: theme.colors.textSecondary },
 ];
 
 const STATUSES = [
     { value: -1, label: 'Tất cả trạng thái' },
-    { value: 0, label: 'Chờ xử lý', color: theme.colors.textSecondary },
-    { value: 1, label: 'Đã xác nhận', color: theme.colors.info },
-    { value: 2, label: 'Đang xử lý', color: theme.colors.warning },
-    { value: 3, label: 'Đã giải quyết', color: theme.colors.success },
+    { value: 0, label: 'Tiếp nhận', color: theme.colors.warning },
+    { value: 1, label: 'Đã xác minh', color: theme.colors.info },
+    { value: 2, label: 'Đang xử lý', color: theme.colors.primary },
+    { value: 3, label: 'Hoàn thành', color: theme.colors.success },
     { value: 4, label: 'Từ chối', color: theme.colors.error },
 ];
 
 const PRIORITIES = [
     { value: -1, label: 'Tất cả mức độ' },
-    { value: 0, label: 'Thấp', color: theme.colors.textSecondary },
-    { value: 1, label: 'Trung bình', color: theme.colors.info },
-    { value: 2, label: 'Cao', color: theme.colors.warning },
-    { value: 3, label: 'Khẩn cấp', color: theme.colors.error },
+    { value: 1, label: 'Thấp', color: theme.colors.success },
+    { value: 2, label: 'Trung bình', color: theme.colors.info },
+    { value: 3, label: 'Cao', color: theme.colors.warning },
+    { value: 4, label: 'Khẩn cấp', color: theme.colors.error },
 ];
 
 const SORT_OPTIONS = [
@@ -49,30 +57,233 @@ const SORT_OPTIONS = [
     { value: 'updated_at', label: 'Cập nhật gần đây' },
 ];
 
-const ReportFilters: React.FC<ReportFiltersProps> = ({ filters, onFiltersChange }) => {
-    const [showModal, setShowModal] = useState(false);
+export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({ visible, onClose, filters, onApply }) => {
     const [tempFilters, setTempFilters] = useState<FilterOptions>(filters);
 
-    const activeFiltersCount = Object.values(filters).filter(v => v !== undefined && v !== -1).length;
+    // Update tempFilters when filters prop changes or modal opens
+    React.useEffect(() => {
+        if (visible) {
+            setTempFilters(filters);
+        }
+    }, [visible, filters]);
 
     const handleApply = () => {
-        onFiltersChange(tempFilters);
-        setShowModal(false);
+        onApply(tempFilters);
+        onClose();
     };
 
     const handleReset = () => {
         const resetFilters: FilterOptions = {
-            sort_by: 'ngay_tao',
+            sort_by: 'created_at',
             sort_order: 'desc'
         };
         setTempFilters(resetFilters);
-        onFiltersChange(resetFilters);
-        setShowModal(false);
+        // We don't apply immediately on reset, user should click Apply
+        // Or we can apply immediately if that's the desired UX. 
+        // Based on previous code, it applied immediately. Let's keep it consistent but wait for Apply button?
+        // Previous code: onFiltersChange(resetFilters); setShowModal(false);
+        // Let's just reset temp and let user click Apply for consistency with other changes
     };
 
-    const selectedCategory = CATEGORIES.find(c => c.value === (filters.danh_muc ?? -1));
-    const selectedStatus = STATUSES.find(s => s.value === (filters.trang_thai ?? -1));
-    const selectedPriority = PRIORITIES.find(p => p.value === (filters.uu_tien ?? -1));
+    // Previous code had immediate apply on reset. Let's stick to that if we want exact behavior, 
+    // but usually Reset just clears form. Let's make Reset clear the form and user clicks Apply.
+    // Actually, looking at previous code:
+    // const handleReset = () => { ... onFiltersChange(resetFilters); setShowModal(false); };
+    // So it did apply and close.
+    // Let's change behavior slightly to be more standard modal: Reset clears selection, Apply commits.
+    // Or to match previous behavior:
+    const handleResetAndApply = () => {
+        const resetFilters: FilterOptions = {
+            sort_by: 'created_at',
+            sort_order: 'desc'
+        };
+        setTempFilters(resetFilters);
+        onApply(resetFilters);
+        onClose();
+    }
+
+    return (
+        <Modal
+            visible={visible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={onClose}
+        >
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                    {/* Header */}
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Bộ lọc</Text>
+                        <TouchableOpacity onPress={onClose}>
+                            <Icon name="close" size={24} color={theme.colors.text} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                        {/* Category Filter */}
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterLabel}>Danh mục</Text>
+                            <View style={styles.optionsGrid}>
+                                {CATEGORIES.map(category => (
+                                    <TouchableOpacity
+                                        key={category.value}
+                                        style={[
+                                            styles.option,
+                                            tempFilters.danh_muc === category.value && styles.optionActive
+                                        ]}
+                                        onPress={() => setTempFilters({
+                                            ...tempFilters,
+                                            danh_muc: category.value === -1 ? undefined : category.value
+                                        })}
+                                    >
+                                        {category.icon && (
+                                            <Icon
+                                                name={category.icon}
+                                                size={20}
+                                                color={tempFilters.danh_muc === category.value ? theme.colors.white : category.color}
+                                            />
+                                        )}
+                                        <Text style={[
+                                            styles.optionText,
+                                            tempFilters.danh_muc === category.value && styles.optionTextActive
+                                        ]}>
+                                            {category.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Status Filter */}
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterLabel}>Trạng thái</Text>
+                            <View style={styles.optionsGrid}>
+                                {STATUSES.map(status => (
+                                    <TouchableOpacity
+                                        key={status.value}
+                                        style={[
+                                            styles.option,
+                                            tempFilters.trang_thai === status.value && styles.optionActive
+                                        ]}
+                                        onPress={() => setTempFilters({
+                                            ...tempFilters,
+                                            trang_thai: status.value === -1 ? undefined : status.value
+                                        })}
+                                    >
+                                        <Text style={[
+                                            styles.optionText,
+                                            tempFilters.trang_thai === status.value && styles.optionTextActive
+                                        ]}>
+                                            {status.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Priority Filter */}
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterLabel}>Mức độ ưu tiên</Text>
+                            <View style={styles.optionsGrid}>
+                                {PRIORITIES.map(priority => (
+                                    <TouchableOpacity
+                                        key={priority.value}
+                                        style={[
+                                            styles.option,
+                                            tempFilters.uu_tien === priority.value && styles.optionActive
+                                        ]}
+                                        onPress={() => setTempFilters({
+                                            ...tempFilters,
+                                            uu_tien: priority.value === -1 ? undefined : priority.value
+                                        })}
+                                    >
+                                        <Text style={[
+                                            styles.optionText,
+                                            tempFilters.uu_tien === priority.value && styles.optionTextActive
+                                        ]}>
+                                            {priority.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Sort Options */}
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterLabel}>Sắp xếp theo</Text>
+                            <View style={styles.optionsGrid}>
+                                {SORT_OPTIONS.map(sort => (
+                                    <TouchableOpacity
+                                        key={sort.value}
+                                        style={[
+                                            styles.option,
+                                            tempFilters.sort_by === sort.value && styles.optionActive
+                                        ]}
+                                        onPress={() => setTempFilters({
+                                            ...tempFilters,
+                                            sort_by: sort.value
+                                        })}
+                                    >
+                                        <Text style={[
+                                            styles.optionText,
+                                            tempFilters.sort_by === sort.value && styles.optionTextActive
+                                        ]}>
+                                            {sort.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {/* Sort Order */}
+                            <View style={styles.sortOrderContainer}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sortOrderButton,
+                                        tempFilters.sort_order === 'desc' && styles.sortOrderActive
+                                    ]}
+                                    onPress={() => setTempFilters({ ...tempFilters, sort_order: 'desc' })}
+                                >
+                                    <Icon name="sort-descending" size={20} color={tempFilters.sort_order === 'desc' ? theme.colors.white : theme.colors.text} />
+                                    <Text style={[
+                                        styles.sortOrderText,
+                                        tempFilters.sort_order === 'desc' && styles.sortOrderTextActive
+                                    ]}>Giảm dần</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sortOrderButton,
+                                        tempFilters.sort_order === 'asc' && styles.sortOrderActive
+                                    ]}
+                                    onPress={() => setTempFilters({ ...tempFilters, sort_order: 'asc' })}
+                                >
+                                    <Icon name="sort-ascending" size={20} color={tempFilters.sort_order === 'asc' ? theme.colors.white : theme.colors.text} />
+                                    <Text style={[
+                                        styles.sortOrderText,
+                                        tempFilters.sort_order === 'asc' && styles.sortOrderTextActive
+                                    ]}>Tăng dần</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </ScrollView>
+
+                    {/* Footer */}
+                    <View style={styles.modalFooter}>
+                        <TouchableOpacity style={styles.resetButton} onPress={handleResetAndApply}>
+                            <Text style={styles.resetButtonText}>Đặt lại</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+                            <Text style={styles.applyButtonText}>Áp dụng</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
+const ReportFilters: React.FC<ReportFiltersProps> = ({ filters, onFiltersChange }) => {
+    const [showModal, setShowModal] = useState(false);
+    const activeFiltersCount = Object.values(filters).filter(v => v !== undefined && v !== -1).length;
 
     return (
         <>
@@ -86,181 +297,12 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({ filters, onFiltersChange 
                 )}
             </TouchableOpacity>
 
-            <Modal
+            <ReportFilterModal
                 visible={showModal}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        {/* Header */}
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Bộ lọc</Text>
-                            <TouchableOpacity onPress={() => setShowModal(false)}>
-                                <Icon name="close" size={24} color={theme.colors.text} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                            {/* Category Filter */}
-                            <View style={styles.filterSection}>
-                                <Text style={styles.filterLabel}>Danh mục</Text>
-                                <View style={styles.optionsGrid}>
-                                    {CATEGORIES.map(category => (
-                                        <TouchableOpacity
-                                            key={category.value}
-                                            style={[
-                                                styles.option,
-                                                tempFilters.danh_muc === category.value && styles.optionActive
-                                            ]}
-                                            onPress={() => setTempFilters({
-                                                ...tempFilters,
-                                                danh_muc: category.value === -1 ? undefined : category.value
-                                            })}
-                                        >
-                                            {category.icon && (
-                                                <Icon
-                                                    name={category.icon}
-                                                    size={20}
-                                                    color={tempFilters.danh_muc === category.value ? theme.colors.white : category.color}
-                                                />
-                                            )}
-                                            <Text style={[
-                                                styles.optionText,
-                                                tempFilters.danh_muc === category.value && styles.optionTextActive
-                                            ]}>
-                                                {category.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-
-                            {/* Status Filter */}
-                            <View style={styles.filterSection}>
-                                <Text style={styles.filterLabel}>Trạng thái</Text>
-                                <View style={styles.optionsGrid}>
-                                    {STATUSES.map(status => (
-                                        <TouchableOpacity
-                                            key={status.value}
-                                            style={[
-                                                styles.option,
-                                                tempFilters.trang_thai === status.value && styles.optionActive
-                                            ]}
-                                            onPress={() => setTempFilters({
-                                                ...tempFilters,
-                                                trang_thai: status.value === -1 ? undefined : status.value
-                                            })}
-                                        >
-                                            <Text style={[
-                                                styles.optionText,
-                                                tempFilters.trang_thai === status.value && styles.optionTextActive
-                                            ]}>
-                                                {status.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-
-                            {/* Priority Filter */}
-                            <View style={styles.filterSection}>
-                                <Text style={styles.filterLabel}>Mức độ ưu tiên</Text>
-                                <View style={styles.optionsGrid}>
-                                    {PRIORITIES.map(priority => (
-                                        <TouchableOpacity
-                                            key={priority.value}
-                                            style={[
-                                                styles.option,
-                                                tempFilters.uu_tien === priority.value && styles.optionActive
-                                            ]}
-                                            onPress={() => setTempFilters({
-                                                ...tempFilters,
-                                                uu_tien: priority.value === -1 ? undefined : priority.value
-                                            })}
-                                        >
-                                            <Text style={[
-                                                styles.optionText,
-                                                tempFilters.uu_tien === priority.value && styles.optionTextActive
-                                            ]}>
-                                                {priority.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-
-                            {/* Sort Options */}
-                            <View style={styles.filterSection}>
-                                <Text style={styles.filterLabel}>Sắp xếp theo</Text>
-                                <View style={styles.optionsGrid}>
-                                    {SORT_OPTIONS.map(sort => (
-                                        <TouchableOpacity
-                                            key={sort.value}
-                                            style={[
-                                                styles.option,
-                                                tempFilters.sort_by === sort.value && styles.optionActive
-                                            ]}
-                                            onPress={() => setTempFilters({
-                                                ...tempFilters,
-                                                sort_by: sort.value
-                                            })}
-                                        >
-                                            <Text style={[
-                                                styles.optionText,
-                                                tempFilters.sort_by === sort.value && styles.optionTextActive
-                                            ]}>
-                                                {sort.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-
-                                {/* Sort Order */}
-                                <View style={styles.sortOrderContainer}>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.sortOrderButton,
-                                            tempFilters.sort_order === 'desc' && styles.sortOrderActive
-                                        ]}
-                                        onPress={() => setTempFilters({ ...tempFilters, sort_order: 'desc' })}
-                                    >
-                                        <Icon name="sort-descending" size={20} color={tempFilters.sort_order === 'desc' ? theme.colors.white : theme.colors.text} />
-                                        <Text style={[
-                                            styles.sortOrderText,
-                                            tempFilters.sort_order === 'desc' && styles.sortOrderTextActive
-                                        ]}>Giảm dần</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.sortOrderButton,
-                                            tempFilters.sort_order === 'asc' && styles.sortOrderActive
-                                        ]}
-                                        onPress={() => setTempFilters({ ...tempFilters, sort_order: 'asc' })}
-                                    >
-                                        <Icon name="sort-ascending" size={20} color={tempFilters.sort_order === 'asc' ? theme.colors.white : theme.colors.text} />
-                                        <Text style={[
-                                            styles.sortOrderText,
-                                            tempFilters.sort_order === 'asc' && styles.sortOrderTextActive
-                                        ]}>Tăng dần</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </ScrollView>
-
-                        {/* Footer */}
-                        <View style={styles.modalFooter}>
-                            <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-                                <Text style={styles.resetButtonText}>Đặt lại</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-                                <Text style={styles.applyButtonText}>Áp dụng</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+                onClose={() => setShowModal(false)}
+                filters={filters}
+                onApply={onFiltersChange}
+            />
         </>
     );
 };

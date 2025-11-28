@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -11,10 +11,12 @@ import {
   FONT_SIZE,
   BORDER_RADIUS,
   SCREEN_PADDING,
+  ICON_SIZE,
+  wp,
 } from '../../theme';
 import PageHeader from '../../component/PageHeader';
 import ReportCard from '../../components/reports/ReportCard';
-import ReportFilters, { FilterOptions } from '../../components/reports/ReportFilters';
+import { ReportFilterModal, FilterOptions } from '../../components/reports/ReportFilters';
 import { reportService } from '../../services/reportService';
 import { Report } from '../../types/api/report';
 
@@ -28,11 +30,24 @@ const ReportsScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterOptions>({
     sort_by: 'created_at',
     sort_order: 'desc'
   });
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => ({
+        ...prev,
+        tu_khoa: searchQuery || undefined
+      }));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchReports = useCallback(async (page: number = 1, isRefresh: boolean = false) => {
     try {
@@ -123,27 +138,40 @@ const ReportsScreen = () => {
     );
   };
 
+  const getSubtitle = () => {
+    if (loading) return 'Đang tải...';
+    const total = reports.length;
+    if (total === 0) return 'Chưa có phản ánh';
+    return `${total} phản ánh`;
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <PageHeader
-        title="Phản ánh"
-        variant="default"
-        showNotification={true}
-      />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
 
-      {/* Filters Bar */}
-      <View style={styles.filtersBar}>
-        <ReportFilters
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-        />
-        <TouchableOpacity
-          style={styles.createIconButton}
-          onPress={() => navigation.navigate('CreateReport')}
-        >
-          <Icon name="plus" size={24} color={theme.colors.white} />
-        </TouchableOpacity>
+      {/* Header Search Bar */}
+      <View style={styles.headerContainer}>
+        <View style={styles.searchBar}>
+          <Icon name="magnify" size={ICON_SIZE.md} color={theme.colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm phản ánh..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          <TouchableOpacity onPress={() => setShowFilterModal(true)}>
+            <Icon name="tune-variant" size={ICON_SIZE.md} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <ReportFilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        filters={filters}
+        onApply={handleFiltersChange}
+      />
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -187,28 +215,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  filtersBar: {
+  headerContainer: {
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingVertical: SPACING.md,
+    backgroundColor: theme.colors.background,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SCREEN_PADDING.horizontal,
-    paddingVertical: SPACING.sm,
     backgroundColor: theme.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  createIconButton: {
-    width: 48,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.text,
+    height: '100%',
   },
   listContent: {
     padding: SCREEN_PADDING.horizontal,
