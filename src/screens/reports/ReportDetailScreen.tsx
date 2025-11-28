@@ -100,21 +100,24 @@ const ReportDetailScreen = () => {
     }
   };
 
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 4: return theme.colors.error;
-      case 3: return theme.colors.warning;
-      case 2: return theme.colors.info;
-      default: return theme.colors.success;
+  const getPriorityColor = (capDo: number) => {
+    // cap_do: 0=low, 1=medium, 2=high, 3=urgent
+    switch (capDo) {
+      case 3: return theme.colors.error;      // Khẩn cấp
+      case 2: return theme.colors.warning;    // Cao  
+      case 1: return theme.colors.info;       // Trung bình
+      default: return theme.colors.success;   // Thấp
     }
   };
 
-  const getPriorityLabel = (priority: number) => {
-    switch (priority) {
-      case 4: return 'Khẩn cấp';
-      case 3: return 'Cao';
-      case 2: return 'Trung bình';
-      default: return 'Bình thường';
+  const getStatusText = (status: number): string => {
+    switch (status) {
+      case 0: return 'Chờ xử lý';
+      case 1: return 'Đã xác nhận';
+      case 2: return 'Đang xử lý';
+      case 3: return 'Đã giải quyết';
+      case 4: return 'Từ chối';
+      default: return 'Không rõ';
     }
   };
 
@@ -150,14 +153,16 @@ const ReportDetailScreen = () => {
             <View style={styles.headerRow}>
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(report.trang_thai) + '15' }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(report.trang_thai) }]}>
-                  {report.trang_thai_text}
+                  {getStatusText(report.trang_thai)}
                 </Text>
               </View>
-              <View style={[styles.priorityBadge, { borderColor: getPriorityColor(report.uu_tien) }]}>
-                <Text style={[styles.priorityText, { color: getPriorityColor(report.uu_tien) }]}>
-                  {getPriorityLabel(report.uu_tien)}
-                </Text>
-              </View>
+              {report.uu_tien && (
+                <View style={[styles.priorityBadge, { borderColor: getPriorityColor(report.uu_tien.cap_do) }]}>
+                  <Text style={[styles.priorityText, { color: getPriorityColor(report.uu_tien.cap_do) }]}>
+                    {report.uu_tien.ten_muc}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <Text style={styles.title}>{report.tieu_de}</Text>
@@ -166,7 +171,7 @@ const ReportDetailScreen = () => {
               <View style={styles.metaItem}>
                 <Icon name="clock-outline" size={14} color={theme.colors.textSecondary} />
                 <Text style={styles.metaText}>
-                  {new Date(report.ngay_tao).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(report.created_at).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
               <View style={styles.metaItem}>
@@ -209,7 +214,7 @@ const ReportDetailScreen = () => {
                 reportId={report.id}
                 initialUpvotes={report.luot_ung_ho}
                 initialDownvotes={report.luot_khong_ung_ho || 0}
-                userVoted={report.user_voted} // Assuming API returns this, or null
+                userVoted={null} // TODO: Update when votes API returns user_voted
                 onVote={handleVote}
               />
 
@@ -240,7 +245,7 @@ const ReportDetailScreen = () => {
                       <View>
                         <Text style={styles.commentUser}>{comment.user.ho_ten}</Text>
                         <Text style={styles.commentTime}>
-                          {new Date(comment.ngay_tao).toLocaleDateString('vi-VN')}
+                          {new Date(comment.created_at || comment.ngay_tao || '').toLocaleDateString('vi-VN')}
                         </Text>
                       </View>
                     </View>
@@ -258,23 +263,39 @@ const ReportDetailScreen = () => {
 
         {/* Comment Input */}
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Viết bình luận..."
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            placeholderTextColor={theme.colors.textSecondary}
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Viết bình luận của bạn..."
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              maxLength={500}
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+            {commentText.length > 0 && (
+              <Text style={styles.charCounter}>
+                {commentText.length}/500
+              </Text>
+            )}
+          </View>
           <TouchableOpacity
-            style={[styles.sendButton, !commentText.trim() && styles.sendButtonDisabled]}
+            style={[
+              styles.sendButton,
+              !commentText.trim() && styles.sendButtonDisabled
+            ]}
             onPress={handleSendComment}
             disabled={!commentText.trim() || submitting}
+            activeOpacity={0.7}
           >
             {submitting ? (
               <ActivityIndicator size="small" color={theme.colors.white} />
             ) : (
-              <Icon name="send" size={20} color={theme.colors.white} />
+              <Icon
+                name="send"
+                size={22}
+                color={commentText.trim() ? theme.colors.white : theme.colors.textSecondary}
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -538,33 +559,51 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: SPACING.md,
+    paddingBottom: Platform.OS === 'ios' ? SPACING.md : SPACING.md,
     backgroundColor: theme.colors.white,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopColor: theme.colors.border,
     alignItems: 'flex-end',
-    ...theme.shadows.top,
+    gap: SPACING.sm,
+  },
+  inputWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   input: {
     flex: 1,
     backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: BORDER_RADIUS.xl,
+    borderRadius: BORDER_RADIUS['2xl'],
     paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
-    maxHeight: 100,
-    marginRight: SPACING.sm,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingRight: 50,
+    maxHeight: 120,
     fontSize: FONT_SIZE.md,
     color: theme.colors.text,
+    lineHeight: 22,
+  },
+  charCounter: {
+    position: 'absolute',
+    right: SPACING.md,
+    bottom: 8,
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.textSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: 4,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...theme.shadows.md,
   },
   sendButtonDisabled: {
-    backgroundColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.border,
+    ...theme.shadows.none,
   },
   modalOverlay: {
     flex: 1,

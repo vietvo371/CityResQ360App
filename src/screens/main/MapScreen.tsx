@@ -30,6 +30,8 @@ const MapScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState<number>(-1);
   const [mapReports, setMapReports] = useState<MapReport[]>([]);
   const [loading, setLoading] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<MapReport | null>(null);
   const cameraRef = useRef<MapboxGL.Camera>(null);
   const mapRef = useRef<MapboxGL.MapView>(null);
 
@@ -58,6 +60,40 @@ const MapScreen = () => {
     }
   };
 
+  const getCategoryName = (category: number): string => {
+    const categories: { [key: number]: string } = {
+      0: 'Giao thông',
+      1: 'Môi trường',
+      2: 'Cháy nổ',
+      3: 'Rác thải',
+      4: 'Ngập lụt',
+      5: 'Khác',
+    };
+    return categories[category] || 'Khác';
+  };
+
+  const getStatusColor = (status: number): string => {
+    switch (status) {
+      case 0: return theme.colors.warning;
+      case 1: return theme.colors.info;
+      case 2: return theme.colors.info;
+      case 3: return theme.colors.success;
+      case 4: return theme.colors.error;
+      default: return theme.colors.textSecondary;
+    }
+  };
+
+  const getStatusLabel = (status: number): string => {
+    switch (status) {
+      case 0: return 'Tiếp nhận';
+      case 1: return 'Đã xác minh';
+      case 2: return 'Đang xử lý';
+      case 3: return 'Hoàn thành';
+      case 4: return 'Từ chối';
+      default: return 'Khác';
+    }
+  };
+
   const fetchMapReports = async () => {
     if (!mapRef.current) return;
 
@@ -65,10 +101,14 @@ const MapScreen = () => {
       setLoading(true);
       const bounds = await mapRef.current.getVisibleBounds();
 
+      console.log('Raw bounds from Mapbox:', bounds);
+
       if (!bounds || bounds.length < 2) return;
 
       const ne = bounds[0]; // [lon, lat]
       const sw = bounds[1]; // [lon, lat]
+
+      console.log('NE:', ne, 'SW:', sw);
 
       const mapBounds: MapBounds = {
         min_lon: sw[0],
@@ -77,15 +117,23 @@ const MapScreen = () => {
         max_lat: ne[1],
       };
 
+      console.log('MapBounds object:', mapBounds);
+
       const filters: any = {};
       if (selectedCategory !== -1) {
         filters.danh_muc = selectedCategory;
       }
 
+      console.log('Calling API with filters:', filters);
+
       const response = await mapService.getMapReports(mapBounds, filters);
       console.log('Response:', response);
+
       if (response.success) {
+        console.log('Setting map reports, count:', response.data?.length);
         setMapReports(response.data);
+      } else {
+        console.log('Response not successful:', response.message);
       }
     } catch (error) {
       console.error('Error fetching map reports:', error);
@@ -95,16 +143,18 @@ const MapScreen = () => {
   };
 
   useEffect(() => {
-    // Initial fetch after a delay to allow map to load
-    const timer = setTimeout(() => {
-      fetchMapReports();
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    // Only fetch after map has loaded
+    if (mapLoaded) {
+      const timer = setTimeout(() => {
+        fetchMapReports();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [mapLoaded]);
 
   // Re-fetch when category changes
   useEffect(() => {
-    if (mapRef.current) {
+    if (mapRef.current && mapLoaded) {
       fetchMapReports();
     }
   }, [selectedCategory]);
@@ -120,6 +170,10 @@ const MapScreen = () => {
         logoEnabled={false}
         attributionEnabled={false}
         onRegionDidChange={fetchMapReports}
+        onDidFinishLoadingMap={() => {
+          console.log('Map finished loading');
+          setMapLoaded(true);
+        }}
       >
         <MapboxGL.Camera
           ref={cameraRef}
@@ -141,6 +195,7 @@ const MapScreen = () => {
             key={report.id.toString()}
             id={`report-${report.id}`}
             coordinate={[report.kinh_do, report.vi_do]}
+            onSelected={() => setSelectedReport(report)}
           >
             <View style={styles.markerContainer}>
               <View style={[styles.marker, { backgroundColor: report.marker_color || theme.colors.primary }]}>
@@ -151,7 +206,6 @@ const MapScreen = () => {
                 <View style={[styles.markerDot, { backgroundColor: report.uu_tien === 3 ? theme.colors.error : theme.colors.warning }]} />
               )}
             </View>
-            <MapboxGL.Callout title={report.tieu_de} />
           </MapboxGL.PointAnnotation>
         ))}
       </MapboxGL.MapView>
@@ -232,6 +286,69 @@ const MapScreen = () => {
           <Text style={styles.reportButtonText}>Báo cáo</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Report Detail Bottom Sheet */}
+      {selectedReport && (
+        <View style={styles.bottomSheet}>
+          <View style={styles.sheetHandle} />
+
+          <View style={styles.sheetHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sheetTitle} numberOfLines={2}>
+                {selectedReport.tieu_de}
+              </Text>
+              <Text style={styles.sheetId}>#{selectedReport.id}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setSelectedReport(null)}>
+              <Icon name="close" size={ICON_SIZE.md} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sheetContent}>
+            <View style={styles.sheetRow}>
+              <View style={styles.sheetBadge}>
+                <Icon name="tag-outline" size={16} color={theme.colors.primary} />
+                <Text style={styles.sheetBadgeText}>
+                  {selectedReport.danh_muc_text || getCategoryName(selectedReport.danh_muc)}
+                </Text>
+              </View>
+
+              <View style={[styles.sheetBadge, {
+                backgroundColor: getStatusColor(selectedReport.trang_thai) + '15'
+              }]}>
+                <Text style={[styles.sheetBadgeText, {
+                  color: getStatusColor(selectedReport.trang_thai)
+                }]}>
+                  {getStatusLabel(selectedReport.trang_thai)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={styles.sheetButton}
+                onPress={() => {
+                  // Navigate to detail screen
+                  setSelectedReport(null);
+                }}
+              >
+                <Icon name="information-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
+                <Text style={styles.sheetButtonText}>Chi tiết</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.sheetButton}>
+                <Icon name="directions" size={ICON_SIZE.md} color={theme.colors.primary} />
+                <Text style={styles.sheetButtonText}>Chỉ đường</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.sheetButton}>
+                <Icon name="share-variant-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
+                <Text style={styles.sheetButtonText}>Chia sẻ</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -368,6 +485,81 @@ const styles = StyleSheet.create({
   reportButtonText: {
     color: theme.colors.white,
     fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+  },
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: BORDER_RADIUS.xl,
+    borderTopRightRadius: BORDER_RADIUS.xl,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingBottom: Platform.select({ ios: SPACING['2xl'], android: SPACING.xl }),
+    ...theme.shadows.xl,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: theme.colors.borderLight,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: SPACING.md,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.md,
+  },
+  sheetTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  sheetId: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.textSecondary,
+  },
+  sheetContent: {
+    gap: SPACING.md,
+  },
+  sheetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  sheetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.md,
+    gap: 4,
+  },
+  sheetBadgeText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  sheetActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  sheetButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: BORDER_RADIUS.md,
+    gap: 4,
+  },
+  sheetButtonText: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.primary,
     fontWeight: '600',
   },
 });

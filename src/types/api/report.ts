@@ -1,31 +1,69 @@
 import { User } from './auth';
 
+export interface Category {
+    id: number;
+    ten_danh_muc: string;
+    ma_danh_muc: string;
+    mo_ta?: string;
+    icon?: string;
+    mau_sac?: string;
+    thu_tu_hien_thi?: number;
+    trang_thai: boolean;
+}
+
+export interface Priority {
+    id: number;
+    ten_muc: string;
+    ma_muc: string;
+    mo_ta?: string;
+    cap_do: number;
+    mau_sac?: string;
+    thoi_gian_phan_hoi_toi_da?: number;
+    trang_thai: boolean;
+}
+
+export interface Agency {
+    id: number;
+    ten_co_quan: string;
+    ma_co_quan?: string;
+    loai_co_quan?: number;
+}
+
 export interface Report {
     id: number;
+    nguoi_dung_id: number;
     tieu_de: string;
     mo_ta: string;
-    danh_muc: number;
-    danh_muc_text: string;
+    danh_muc_id: number;
     trang_thai: number;
-    trang_thai_text: string;
-    uu_tien: number;
-    uu_tien_text: string;
-    vi_do: number;
-    kinh_do: number;
+    uu_tien_id: number;
+    vi_do: string;
+    kinh_do: string;
     dia_chi: string;
     luot_ung_ho: number;
     luot_khong_ung_ho: number;
     luot_xem: number;
-    nhan_ai?: string;
-    do_tin_cay?: number;
-    user?: User;
-    agency?: {
-        id: number;
-        ten_co_quan: string;
-    };
+    nhan_ai?: string | null;
+    do_tin_cay?: number | null;
+    co_quan_phu_trach_id?: number | null;
+    la_cong_khai: boolean;
+    han_phan_hoi?: string | null;
+    thoi_gian_phan_hoi_thuc_te?: string | null;
+    thoi_gian_giai_quyet?: string | null;
+    danh_gia_hai_long?: number | null;
+    la_trung_lap: boolean;
+    trung_lap_voi_id?: number | null;
+    the_tags?: string | null;
+    du_lieu_mo_rong?: any;
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string | null;
+    // Nested objects
+    nguoi_dung?: User;
+    danh_muc?: Category;
+    uu_tien?: Priority;
+    co_quan_xu_ly?: Agency | null;
     media?: Media[];
-    ngay_tao: string;
-    ngay_cap_nhat: string;
 }
 
 export interface Media {
@@ -56,7 +94,8 @@ export interface Comment {
     user: User;
     luot_thich: number;
     user_liked: boolean;
-    ngay_tao: string;
+    created_at?: string;  // New API format
+    ngay_tao?: string;    // Old format - fallback
 }
 
 export interface CreateReportRequest {

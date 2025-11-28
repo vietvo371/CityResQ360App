@@ -49,6 +49,7 @@ const ReportsScreen = () => {
       });
 
       if (response.success && response.data) {
+        console.log('Reports:', response.data);
         if (page === 1) {
           setReports(response.data);
         } else {

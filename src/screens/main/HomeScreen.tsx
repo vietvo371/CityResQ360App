@@ -208,54 +208,33 @@ const HomeScreen = () => {
     ];
   };
 
-  const formatNumber = (num: number): string => {
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'k';
-    }
-    return num.toString();
+  const getCategoryColor = (categoryId: number): string => {
+    const colors = [
+      theme.colors.primary,   // 0: Giao thông
+      theme.colors.success,   // 1: Môi trường
+      theme.colors.error,     // 2: Cháy nổ
+      theme.colors.warning,   // 3: Rác thải
+      theme.colors.info,      // 4: Ngập lụt
+    ];
+    return colors[categoryId] || theme.colors.textSecondary;
   };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffHours < 1) {
-      const diffMins = Math.floor(diffMs / (1000 * 60));
-      return `${diffMins} phút trước`;
-    } else if (diffHours < 24) {
-      return `${diffHours} giờ trước`;
-    } else if (diffDays === 1) {
-      return 'Hôm qua';
-    } else if (diffDays < 7) {
-      return `${diffDays} ngày trước`;
-    } else {
-      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  const getPriorityColor = (priorityLevel: number): string => {
+    switch (priorityLevel) {
+      case 3: return theme.colors.error;      // Khẩn cấp
+      case 2: return theme.colors.warning;    // Cao
+      case 1: return theme.colors.info;       // Trung bình
+      default: return theme.colors.textSecondary; // Thấp
     }
-  };
-
-  const getCategoryName = (category: number): string => {
-    const categories: { [key: number]: string } = {
-      0: 'Giao thông',
-      1: 'Môi trường',
-      2: 'Cháy nổ',
-      3: 'Rác thải',
-      4: 'Ngập lụt',
-      5: 'Khác',
-    };
-    return categories[category] || 'Khác';
   };
 
   const getStatusColor = (status: number): string => {
-    // 0:pending, 1:verified, 2:in_progress, 3:resolved, 4:rejected
     switch (status) {
-      case 0: return theme.colors.warning; // pending
-      case 1: return theme.colors.info; // verified
-      case 2: return theme.colors.info; // in_progress
-      case 3: return theme.colors.success; // resolved
-      case 4: return theme.colors.error; // rejected
+      case 0: return theme.colors.warning;
+      case 1: return theme.colors.info;
+      case 2: return theme.colors.info;
+      case 3: return theme.colors.success;
+      case 4: return theme.colors.error;
       default: return theme.colors.textSecondary;
     }
   };
@@ -271,14 +250,59 @@ const HomeScreen = () => {
     }
   };
 
-  const getPriorityColor = (priority: number): string => {
-    // 1:normal, 2:high, 3:urgent
-    switch (priority) {
-      case 3: return theme.colors.error; // urgent
-      case 2: return theme.colors.warning; // high
-      case 1: return theme.colors.success; // normal
-      default: return theme.colors.textSecondary;
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
     }
+    return num.toString();
+  };
+
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return 'Không rõ';
+
+    try {
+      const date = new Date(dateString);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Không rõ';
+      }
+
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffHours < 1) {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return `${diffMins} phút trước`;
+      } else if (diffHours < 24) {
+        return `${diffHours} giờ trước`;
+      } else if (diffDays === 1) {
+        return 'Hôm qua';
+      } else if (diffDays < 7) {
+        return `${diffDays} ngày trước`;
+      } else {
+        return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      }
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Không rõ';
+    }
+  };
+
+  const getCategoryName = (categoryId: number): string => {
+    const categories: { [key: number]: string } = {
+      0: 'Giao thông',
+      1: 'Môi trường',
+      2: 'Cháy nổ',
+      3: 'Rác thải',
+      4: 'Ngập lụt',
+      5: 'Khác',
+    };
+    return categories[categoryId] || 'Khác';
   };
 
   const renderHeader = () => (
@@ -398,28 +422,40 @@ const HomeScreen = () => {
               <TouchableOpacity
                 key={report.id}
                 style={styles.reportItem}
-                onPress={() => navigation.navigate('ReportDetail', { id: report.id })}
+                onPress={() => navigation.navigate('ReportDetail', { id: report.id, reportId: report.id })}
                 activeOpacity={0.7}
               >
-                <View style={[styles.priorityStrip, { backgroundColor: getPriorityColor(report.uu_tien) }]} />
+                <View style={[styles.priorityStrip, {
+                  backgroundColor: getPriorityColor(report.uu_tien?.cap_do || 0)
+                }]} />
                 <View style={styles.reportMain}>
                   <View style={styles.reportTop}>
                     <Text style={styles.ticketId}>#{report.id.toString().padStart(6, '0')}</Text>
-                    <View style={[styles.statusTag, { backgroundColor: getStatusColor(report.trang_thai) + '15' }]}>
-                      <Text style={[styles.statusText, { color: getStatusColor(report.trang_thai) }]}>
+                    <View style={[styles.statusTag, {
+                      backgroundColor: getStatusColor(report.trang_thai) + '15'
+                    }]}>
+                      <Text style={[styles.statusText, {
+                        color: getStatusColor(report.trang_thai)
+                      }]}>
                         {getStatusLabel(report.trang_thai)}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.reportTitle} numberOfLines={1}>{report.tieu_de}</Text>
+                  <Text style={styles.reportTitle} numberOfLines={1}>
+                    {report.tieu_de}
+                  </Text>
                   <View style={styles.reportFooter}>
                     <View style={styles.reportInfo}>
                       <Icon name="tag-outline" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
-                      <Text style={styles.reportInfoText}>{getCategoryName(report.danh_muc)}</Text>
+                      <Text style={styles.reportInfoText}>
+                        {report.danh_muc?.ten_danh_muc || getCategoryName(report.danh_muc_id)}
+                      </Text>
                     </View>
                     <View style={styles.reportInfo}>
                       <Icon name="clock-outline" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
-                      <Text style={styles.reportInfoText}>{formatDate(report.ngay_tao)}</Text>
+                      <Text style={styles.reportInfoText}>
+                        {formatDate(report.created_at)}
+                      </Text>
                     </View>
                   </View>
                 </View>

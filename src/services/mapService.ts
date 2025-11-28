@@ -6,9 +6,15 @@ import env from '../config/env';
 export const mapService = {
     getMapReports: async (bounds: MapBounds, filters?: any): Promise<ApiResponse<MapReport[]>> => {
         const boundsStr = `${bounds.min_lat},${bounds.min_lon},${bounds.max_lat},${bounds.max_lon}`;
+        console.log('MapService - Bounds string:', boundsStr);
+        console.log('MapService - Filters:', filters);
+        console.log('MapService - Full params:', { bounds: boundsStr, ...filters });
+
         const response = await api.get<ApiResponse<MapReport[]>>('/map/reports', {
             params: { bounds: boundsStr, ...filters }
         });
+
+        console.log('MapService - Raw response:', response);
         return response.data;
     },
 
@@ -19,17 +25,16 @@ export const mapService = {
         return response.data;
     },
 
-    getClusters: async (zoom: number): Promise<ApiResponse<any[]>> => {
-        const response = await api.get<ApiResponse<any[]>>('/map/clusters', {
+    getClusters: async (zoom: number): Promise<ApiResponse<import('../types/api/map').ClusterMarker[]>> => {
+        const response = await api.get<ApiResponse<import('../types/api/map').ClusterMarker[]>>('/map/clusters', {
             params: { zoom }
         });
         return response.data;
     },
 
-    getRoutes: async (lat: number, long: number, radius: number = 2): Promise<ApiResponse<Route[]>> => {
-        const response = await api.get<ApiResponse<Route[]>>('/map/routes', {
-            params: { vi_do: lat, kinh_do: long, radius }
-        });
+    getRoutes: async (): Promise<ApiResponse<Route[]>> => {
+        // Note: API returns "coming soon" - placeholder for future GTFS routes
+        const response = await api.get<ApiResponse<Route[]>>('/map/routes');
         return response.data;
     },
 

@@ -4,6 +4,7 @@ export interface MapReport {
     kinh_do: number;
     tieu_de: string;
     danh_muc: number;
+    danh_muc_text?: string;
     uu_tien: number;
     trang_thai: number;
     marker_color: string;
@@ -16,10 +17,10 @@ export interface HeatmapPoint {
 }
 
 export interface ClusterMarker {
-    id: number;
     vi_do: number;
     kinh_do: number;
     count: number;
+    sample_id: number;
 }
 
 export interface Route {

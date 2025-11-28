@@ -20,9 +20,9 @@ const CATEGORIES = [
     { value: -1, label: 'Tất cả danh mục' },
     { value: 0, label: 'Giao thông', icon: 'car', color: theme.colors.primary },
     { value: 1, label: 'Môi trường', icon: 'leaf', color: theme.colors.success },
-    { value: 2, label: 'Hạ tầng', icon: 'hammer-wrench', color: theme.colors.warning },
-    { value: 3, label: 'An ninh', icon: 'shield-alert', color: theme.colors.error },
-    { value: 4, label: 'Khác', icon: 'dots-horizontal', color: theme.colors.info },
+    { value: 2, label: 'Cháy nổ', icon: 'fire', color: theme.colors.error },
+    { value: 3, label: 'Rác thải', icon: 'trash-can', color: theme.colors.warning },
+    { value: 4, label: 'Ngập lụt', icon: 'weather-pouring', color: theme.colors.info },
 ];
 
 const STATUSES = [
@@ -43,10 +43,10 @@ const PRIORITIES = [
 ];
 
 const SORT_OPTIONS = [
-    { value: 'ngay_tao', label: 'Ngày tạo' },
+    { value: 'created_at', label: 'Ngày tạo' },
     { value: 'luot_ung_ho', label: 'Lượt ủng hộ' },
     { value: 'luot_xem', label: 'Lượt xem' },
-    { value: 'ngay_cap_nhat', label: 'Cập nhật gần đây' },
+    { value: 'updated_at', label: 'Cập nhật gần đây' },
 ];
 
 const ReportFilters: React.FC<ReportFiltersProps> = ({ filters, onFiltersChange }) => {

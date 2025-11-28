@@ -15,15 +15,16 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
         const colors = [
             theme.colors.primary,   // 0: Giao thông
             theme.colors.success,   // 1: Môi trường
-            theme.colors.warning,   // 2: Hạ tầng
-            theme.colors.error,     // 3: An ninh
-            theme.colors.info,      // 4: Khác
+            theme.colors.error,     // 2: Cháy nổ
+            theme.colors.warning,   // 3: Rác thải
+            theme.colors.info,      // 4: Ngập lụt
         ];
         return colors[category] || theme.colors.textSecondary;
     };
 
-    const getPriorityColor = (priority: number) => {
-        switch (priority) {
+    const getPriorityColor = (priorityLevel: number) => {
+        // Based on cap_do: 0=low, 1=medium, 2=high, 3=urgent
+        switch (priorityLevel) {
             case 3: return theme.colors.error;      // Khẩn cấp
             case 2: return theme.colors.warning;    // Cao
             case 1: return theme.colors.info;       // Trung bình
@@ -42,40 +43,73 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const days = Math.floor(hours / 24);
-
-        if (hours < 1) return 'Vừa xong';
-        if (hours < 24) return `${hours} giờ trước`;
-        if (days < 7) return `${days} ngày trước`;
-        return date.toLocaleDateString('vi-VN');
+    const getStatusText = (status: number): string => {
+        switch (status) {
+            case 0: return 'Chờ xử lý';
+            case 1: return 'Đã xác nhận';
+            case 2: return 'Đang xử lý';
+            case 3: return 'Đã giải quyết';
+            case 4: return 'Từ chối';
+            default: return 'Không rõ';
+        }
     };
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'Không rõ';
+
+        try {
+            const date = new Date(dateString);
+
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                return 'Không rõ';
+            }
+
+            const now = new Date();
+            const diff = now.getTime() - date.getTime();
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+
+            if (hours < 1) return 'Vừa xong';
+            if (hours < 24) return `${hours} giờ trước`;
+            if (days < 7) return `${days} ngày trước`;
+            return date.toLocaleDateString('vi-VN');
+        } catch (error) {
+            console.error('Error formatting date:', dateString, error);
+            return 'Không rõ';
+        }
+    };
+
+    // Get category name and color from nested object or ID
+    const categoryName = report.danh_muc?.ten_danh_muc || 'Khác';
+    const categoryColor = report.danh_muc?.mau_sac || getCategoryColor(report.danh_muc_id);
+
+    // Get priority from nested object
+    const priorityText = report.uu_tien?.ten_muc;
+    const priorityLevel = report.uu_tien?.cap_do || 0;
+    const priorityColor = report.uu_tien?.mau_sac || getPriorityColor(priorityLevel);
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.userInfo}>
-                    {report.user?.anh_dai_dien ? (
-                        <Image source={{ uri: report.user.anh_dai_dien }} style={styles.avatar} />
+                    {report.nguoi_dung?.anh_dai_dien ? (
+                        <Image source={{ uri: report.nguoi_dung.anh_dai_dien }} style={styles.avatar} />
                     ) : (
                         <View style={styles.avatarPlaceholder}>
                             <Icon name="account" size={20} color={theme.colors.white} />
                         </View>
                     )}
                     <View style={styles.userDetails}>
-                        <Text style={styles.userName}>{report.user?.ho_ten || 'Người dùng'}</Text>
-                        <Text style={styles.date}>{formatDate(report.ngay_tao)}</Text>
+                        <Text style={styles.userName}>{report.nguoi_dung?.ho_ten || 'Người dùng'}</Text>
+                        <Text style={styles.date}>{formatDate(report.created_at)}</Text>
                     </View>
                 </View>
                 <View style={styles.badges}>
-                    <View style={[styles.badge, { backgroundColor: getCategoryColor(report.danh_muc) + '20' }]}>
-                        <Text style={[styles.badgeText, { color: getCategoryColor(report.danh_muc) }]}>
-                            {report.danh_muc_text}
+                    <View style={[styles.badge, { backgroundColor: categoryColor + '20' }]}>
+                        <Text style={[styles.badgeText, { color: categoryColor }]}>
+                            {categoryName}
                         </Text>
                     </View>
                 </View>
@@ -128,14 +162,14 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
                 </View>
 
                 <View style={styles.statusBadges}>
-                    {report.uu_tien > 0 && (
-                        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(report.uu_tien) }]}>
+                    {priorityText && priorityLevel > 0 && (
+                        <View style={[styles.priorityBadge, { backgroundColor: priorityColor }]}>
                             <Icon name="flag" size={12} color={theme.colors.white} />
-                            <Text style={styles.priorityText}>{report.uu_tien_text}</Text>
+                            <Text style={styles.priorityText}>{priorityText}</Text>
                         </View>
                     )}
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(report.trang_thai) }]}>
-                        <Text style={styles.statusText}>{report.trang_thai_text}</Text>
+                        <Text style={styles.statusText}>{getStatusText(report.trang_thai)}</Text>
                     </View>
                 </View>
             </View>
