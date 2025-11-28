@@ -66,12 +66,12 @@ const WalletScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <PageHeader
+      {/* <PageHeader
         title="Ví điểm CityPoint"
-        variant="default"
+        variant="gradient"
         rightIcon="help-circle-outline"
         onRightPress={() => { }}
-      />
+      /> */}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -81,41 +81,73 @@ const WalletScreen = () => {
         }
       >
         {/* Balance Card */}
-        <LinearGradient
-          colors={[theme.colors.primary, '#2196F3', '#4facfe']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.balanceCard}
-        >
-          {/* Background Pattern (Optional decorative circles) */}
+        <View style={styles.balanceCard}>
+          {/* Gradient Background */}
+          <LinearGradient
+            colors={[theme.colors.primary, '#2196F3', '#4facfe']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* Background Pattern */}
           <View style={styles.cardPatternCircle1} />
           <View style={styles.cardPatternCircle2} />
 
+          {/* Header */}
           <View style={styles.cardHeader}>
             <View>
               <Text style={styles.cardLabel}>Tổng điểm tích lũy</Text>
               <Text style={styles.cardSubLabel}>CityResQ360 Rewards</Text>
             </View>
-
+            {walletInfo && (
+              <View style={styles.rankBadge}>
+                <Icon name="crown" size={14} color="#FFD700" />
+                <Text style={styles.rankText}>{walletInfo.cap_huy_hieu_text}</Text>
+              </View>
+            )}
           </View>
 
+          {/* Body */}
           <View style={styles.cardBody}>
             <Text style={styles.balanceValue}>
               {walletInfo ? formatPoints(walletInfo.diem_thanh_pho) : '...'}
             </Text>
             <Text style={styles.currencyLabel}>CityPoints</Text>
+
+            {walletInfo && (
+              <View style={styles.reputationBadge}>
+                <Icon name="shield-check" size={14} color="white" style={{ marginRight: 4 }} />
+                <Text style={styles.reputationText}>Uy tín: {walletInfo.diem_uy_tin}</Text>
+              </View>
+            )}
           </View>
 
+          {/* Footer */}
           <View style={styles.cardFooter}>
-            <View style={styles.idContainer}>
-              <Text style={styles.idLabel}>ID: </Text>
-              <Text style={styles.idValue}>
-                {walletInfo ? `MB-${walletInfo.cap_huy_hieu || '00'}-${Math.floor(Math.random() * 10000)}` : '...'}
-              </Text>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              {walletInfo && walletInfo.next_level_points > 0 ? (
+                <View>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>Tiến độ lên hạng</Text>
+                    <Text style={styles.progressValue}>{walletInfo.progress_percentage}%</Text>
+                  </View>
+                  <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: `${walletInfo.progress_percentage}%` }]} />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.idContainer}>
+                  <Text style={styles.idLabel}>Thành viên </Text>
+                  <Text style={styles.idValue}>
+                    {walletInfo ? `#${String(walletInfo.cap_huy_hieu).padStart(2, '0')}` : '...'}
+                  </Text>
+                </View>
+              )}
             </View>
             <Icon name="contactless-payment" size={24} color="rgba(255,255,255,0.8)" />
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Quick Actions */}
         <View style={styles.actionsGrid}>
@@ -193,7 +225,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.xl,
-    minHeight: 200,
+    paddingBottom: SPACING.lg,
     justifyContent: 'space-between',
     overflow: 'hidden',
     position: 'relative',
@@ -207,6 +239,7 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 75,
     backgroundColor: 'rgba(255,255,255,0.1)',
+    zIndex: 0,
   },
   cardPatternCircle2: {
     position: 'absolute',
@@ -216,11 +249,13 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: 'rgba(255,255,255,0.1)',
+    zIndex: 0,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    zIndex: 1,
   },
   cardLabel: {
     fontSize: FONT_SIZE.sm,
@@ -252,7 +287,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   cardBody: {
-    marginVertical: SPACING.md,
+    marginVertical: SPACING.sm,
+    zIndex: 1,
   },
   balanceValue: {
     fontSize: 42,
@@ -270,6 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 1,
   },
   idContainer: {
     flexDirection: 'row',
@@ -352,6 +389,45 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: SPACING.md,
+  },
+  reputationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  reputationText: {
+    color: theme.colors.white,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  progressLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 10,
+  },
+  progressValue: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: theme.colors.white,
+    borderRadius: 2,
   },
 });
 

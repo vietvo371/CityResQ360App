@@ -8,9 +8,10 @@ interface ReportCardProps {
     report: Report;
     onPress: () => void;
     showActions?: boolean;
+    renderAction?: () => React.ReactNode;
 }
 
-const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = false }) => {
+const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = false, renderAction }) => {
     const getCategoryColor = (category: number) => {
         const colors = [
             theme.colors.primary,   // 0: Giao thông
@@ -136,11 +137,15 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
                     </View>
                 </View>
                 <View style={styles.badges}>
-                    <View style={[styles.badge, { backgroundColor: '#F3F4F6' }]}>
-                        <Text style={[styles.badgeText, { color: '#6B7280' }]}>
-                            {categoryName}
-                        </Text>
-                    </View>
+                    {renderAction ? (
+                        renderAction()
+                    ) : (
+                        <View style={[styles.badge, { backgroundColor: '#F3F4F6' }]}>
+                            <Text style={[styles.badgeText, { color: '#6B7280' }]}>
+                                {categoryName}
+                            </Text>
+                        </View>
+                    )}
                 </View>
             </View>
 

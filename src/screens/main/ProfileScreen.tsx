@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, ActivityIndicator, FlatList, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -14,12 +14,102 @@ import {
   hp,
 } from '../../theme';
 import ModalCustom from '../../component/ModalCustom';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { authService } from '../../services/authService';
+import { reportService } from '../../services/reportService';
+import { User } from '../../types/api/auth';
+import { Report } from '../../types/api/report';
+import ReportCard from '../../components/reports/ReportCard';
+import { AlertService } from '../../services/AlertService';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
-  const { user, signOut } = useAuth();
+  const { user: contextUser, signOut } = useAuth();
+  const [user, setUser] = useState<User | null>(contextUser);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalTitle, setInfoModalTitle] = useState('');
+  const [infoModalMessage, setInfoModalMessage] = useState('');
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [openMenuReportId, setOpenMenuReportId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [myReports, setMyReports] = useState<Report[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const profileData = await authService.getProfile();
+      setUser(profileData);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchMyReports = useCallback(async (page: number = 1, isRefresh: boolean = false) => {
+    try {
+      if (page === 1) {
+        isRefresh ? setRefreshing(true) : setReportsLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await reportService.getMyReports({
+        page,
+        per_page: 10,
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
+
+      if (response.success && response.data) {
+        if (page === 1) {
+          setMyReports(response.data);
+        } else {
+          setMyReports(prev => [...prev, ...response.data]);
+        }
+
+        if (response.meta) {
+          setCurrentPage(response.meta.current_page);
+          setTotalPages(response.meta.last_page);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching my reports:', error);
+      setInfoModalTitle('Lỗi');
+      setInfoModalMessage('Không thể tải danh sách phản ánh của bạn');
+      setShowInfoModal(true);
+    } finally {
+      setReportsLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchProfile();
+      fetchMyReports(1);
+    }, [])
+  );
+
+  const onRefresh = () => {
+    fetchProfile();
+    fetchMyReports(1, true);
+  };
+
+  const handleLoadMore = () => {
+    if (!loadingMore && currentPage < totalPages) {
+      fetchMyReports(currentPage + 1);
+    }
+  };
 
   const menuItems = [
     {
@@ -27,7 +117,6 @@ const ProfileScreen = () => {
       items: [
         { id: 'profile', icon: 'account-outline', label: 'Thông tin cá nhân' },
         { id: 'security', icon: 'shield-check-outline', label: 'Bảo mật & Đăng nhập' },
-        { id: 'kyc', icon: 'card-account-details-outline', label: 'Xác thực danh tính (eKYC)' },
       ]
     },
     {
@@ -37,6 +126,12 @@ const ProfileScreen = () => {
         { id: 'language', icon: 'translate', label: 'Ngôn ngữ' },
         { id: 'help', icon: 'help-circle-outline', label: 'Trung tâm trợ giúp' },
         { id: 'about', icon: 'information-outline', label: 'Về ứng dụng' },
+      ]
+    },
+    {
+      title: '',
+      items: [
+        { id: 'logout', icon: 'logout', label: 'Đăng xuất' },
       ]
     }
   ];
@@ -56,31 +151,85 @@ const ProfileScreen = () => {
   };
 
   const handleMenuPress = (itemId: string) => {
-    switch (itemId) {
-      case 'profile':
-        (navigation as any).navigate('UserProfile', { userId: user?.id });
-        break;
-      case 'security':
-        (navigation as any).navigate('ChangePasswordLoggedIn');
-        break;
-      case 'kyc':
-        // TODO: Navigate to eKYC verification screen when implemented
-        console.log('Navigate to eKYC');
-        break;
-      case 'notifications':
-        (navigation as any).navigate('NotificationSettings');
-        break;
-      case 'language':
-        (navigation as any).navigate('LanguageSettings');
-        break;
-      case 'help':
-        (navigation as any).navigate('HelpCenter');
-        break;
-      case 'about':
-        (navigation as any).navigate('About');
-        break;
-      default:
-        break;
+    setShowMenuModal(false);
+
+    setTimeout(() => {
+      switch (itemId) {
+        case 'profile':
+          (navigation as any).navigate('UserProfile', { userId: user?.id });
+          break;
+        case 'security':
+          (navigation as any).navigate('ChangePasswordLoggedIn');
+          break;
+        case 'notifications':
+          (navigation as any).navigate('NotificationSettings');
+          break;
+        case 'language':
+          (navigation as any).navigate('LanguageSettings');
+          break;
+        case 'help':
+          (navigation as any).navigate('HelpCenter');
+          break;
+        case 'about':
+          (navigation as any).navigate('About');
+          break;
+        case 'logout':
+          setShowLogoutModal(true);
+          break;
+        default:
+          break;
+      }
+    }, 300);
+  };
+
+  const handleReportPress = (report: Report) => {
+    (navigation as any).navigate('ReportDetail', { id: report.id, reportId: report.id });
+  };
+
+  const handleEditReport = (report: Report) => {
+    // Only allow editing if status is pending (0) or confirmed (1)
+    if (report.trang_thai <= 1) {
+      (navigation as any).navigate('EditReport', { reportId: report.id });
+    } else {
+      setInfoModalTitle('Không thể chỉnh sửa');
+      setInfoModalMessage('Phản ánh này đang được xử lý hoặc đã hoàn thành nên không thể chỉnh sửa.');
+      setShowInfoModal(true);
+    }
+  };
+
+  const handleDeleteReport = (reportId: number) => {
+    setSelectedReportId(reportId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteReport = async () => {
+    if (!selectedReportId) return;
+
+    try {
+      const response = await reportService.deleteReport(selectedReportId);
+      if (response.success) {
+        // Remove from list
+        setMyReports(prev => prev.filter(r => r.id !== selectedReportId));
+        // Update user stats
+        if (user) {
+          setUser({ ...user, tong_so_phan_anh: (user.tong_so_phan_anh || 0) - 1 });
+        }
+        setShowDeleteModal(false);
+        setSelectedReportId(null);
+
+        // Show success message
+        setInfoModalTitle('Thành công');
+        setInfoModalMessage('Đã xóa phản ánh');
+        setShowInfoModal(true);
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      setShowDeleteModal(false);
+      setSelectedReportId(null);
+
+      setInfoModalTitle('Lỗi');
+      setInfoModalMessage('Không thể xóa phản ánh. Vui lòng thử lại.');
+      setShowInfoModal(true);
     }
   };
 
@@ -88,12 +237,87 @@ const ProfileScreen = () => {
     return points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+  const renderReportItem = ({ item }: { item: Report }) => (
+    <View style={styles.reportCardWrapper}>
+      <ReportCard
+        report={item}
+        onPress={() => handleReportPress(item)}
+        renderAction={() => (
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuIconButton}
+              onPress={() => setOpenMenuReportId(openMenuReportId === item.id ? null : item.id)}
+            >
+              <Icon name="dots-vertical" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Profile */}
+            {openMenuReportId === item.id && (
+              <View style={styles.dropdownMenu}>
+                <TouchableOpacity
+                  style={styles.menuOption}
+                  onPress={() => {
+                    setOpenMenuReportId(null);
+                    handleEditReport(item);
+                  }}
+                >
+                  <Icon name="pencil" size={20} color={theme.colors.primary} />
+                  <Text style={styles.menuOptionText}>Sửa</Text>
+                </TouchableOpacity>
+
+                <View style={styles.menuDivider} />
+
+                <TouchableOpacity
+                  style={styles.menuOption}
+                  onPress={() => {
+                    setOpenMenuReportId(null);
+                    handleDeleteReport(item.id);
+                  }}
+                >
+                  <Icon name="delete" size={20} color={theme.colors.error} />
+                  <Text style={styles.menuOptionText}>Xóa</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+      />
+    </View>
+  );
+
+  const renderEmpty = () => (
+    <View style={styles.emptyState}>
+      <Icon name="notebook-outline" size={64} color={theme.colors.textSecondary} />
+      <Text style={styles.emptyStateTitle}>Chưa có phản ánh nào</Text>
+      <Text style={styles.emptyStateText}>
+        Hãy tạo phản ánh đầu tiên của bạn để cải thiện thành phố
+      </Text>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => (navigation as any).navigate('CreateReport')}
+      >
+        <Icon name="plus-circle" size={20} color={theme.colors.white} />
+        <Text style={styles.createButtonText}>Tạo phản ánh mới</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+      </View>
+    );
+  };
+
+  const ListHeaderComponent = () => (
+    <>
+      {/* Header Profile */}
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : (
         <View style={styles.header}>
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
@@ -114,6 +338,14 @@ const ProfileScreen = () => {
               <Text style={styles.userName}>{user?.ho_ten || 'Người dùng'}</Text>
               <Text style={styles.userRole}>Cư dân TP.HCM</Text>
             </View>
+
+            {/* Hamburger Menu Button */}
+            <TouchableOpacity
+              style={styles.hamburgerButton}
+              onPress={() => setShowMenuModal(true)}
+            >
+              <Icon name="menu" size={28} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.statsContainer}>
@@ -137,42 +369,111 @@ const ProfileScreen = () => {
             </View>
           </View>
         </View>
+      )}
 
-        {/* Menu Sections */}
-        <View style={styles.menuContainer}>
-          {menuItems.map((section, index) => (
-            <View key={index} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <View style={styles.sectionContent}>
-                {section.items.map((item, idx) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.menuItem,
-                      idx === section.items.length - 1 && styles.lastMenuItem
-                    ]}
-                    onPress={() => handleMenuPress(item.id)}
-                  >
-                    <View style={styles.menuIconBox}>
-                      <Icon name={item.icon} size={ICON_SIZE.md} color={theme.colors.text} />
-                    </View>
-                    <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Icon name="chevron-right" size={ICON_SIZE.md} color={theme.colors.textSecondary} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          ))}
+      {/* My Reports Title */}
+      <View style={styles.reportsHeader}>
+        <Text style={styles.reportsTitle}>Phản ánh của tôi</Text>
+      </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+
+      {reportsLoading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Đang tải...</Text>
         </View>
+      ) : (
+        <FlatList
+          data={myReports}
+          renderItem={renderReportItem}
+          keyExtractor={(item) => item.id.toString()}
+          ListHeaderComponent={ListHeaderComponent}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          onScroll={() => {
+            if (openMenuReportId) {
+              setOpenMenuReportId(null);
+            }
+          }}
+          scrollEventThrottle={16}
+        />
+      )}
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={() => setShowLogoutModal(true)}>
-          <Icon name="logout" size={ICON_SIZE.md} color={theme.colors.error} />
-          <Text style={styles.logoutText}>Đăng xuất</Text>
+      {/* Menu Modal */}
+      <Modal
+        visible={showMenuModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMenuModal(false)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenuModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.menuModalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <View style={styles.menuModalHeader}>
+              <Text style={styles.menuModalTitle}>Cài đặt</Text>
+              <TouchableOpacity onPress={() => setShowMenuModal(false)}>
+                <Icon name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {menuItems.map((section, index) => (
+                <View key={index} style={styles.menuSection}>
+                  {section.title ? <Text style={styles.menuSectionTitle}>{section.title}</Text> : null}
+                  <View style={styles.menuSectionContent}>
+                    {section.items.map((item, idx) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.menuModalItem,
+                          idx === section.items.length - 1 && styles.lastMenuItem
+                        ]}
+                        onPress={() => handleMenuPress(item.id)}
+                      >
+                        <View style={styles.menuIconBox}>
+                          <Icon
+                            name={item.icon}
+                            size={ICON_SIZE.md}
+                            color={item.id === 'logout' ? theme.colors.error : theme.colors.text}
+                          />
+                        </View>
+                        <Text style={[
+                          styles.menuLabel,
+                          item.id === 'logout' && { color: theme.colors.error }
+                        ]}>
+                          {item.label}
+                        </Text>
+                        <Icon name="chevron-right" size={ICON_SIZE.md} color={theme.colors.textSecondary} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </TouchableOpacity>
         </TouchableOpacity>
-
-        <Text style={styles.versionText}>Phiên bản 1.0.0</Text>
-      </ScrollView>
+      </Modal>
 
       {/* Logout Confirmation Modal */}
       <ModalCustom
@@ -180,10 +481,35 @@ const ProfileScreen = () => {
         setIsModalVisible={setShowLogoutModal}
         title="Đăng xuất"
         onPressAction={handleLogout}
-
       >
         <Text style={styles.modalMessage}>
           Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?
+        </Text>
+      </ModalCustom>
+
+      {/* Delete Confirmation Modal */}
+      <ModalCustom
+        isModalVisible={showDeleteModal}
+        setIsModalVisible={setShowDeleteModal}
+        title="Xóa phản ánh"
+        onPressAction={confirmDeleteReport}
+      >
+        <Text style={styles.modalMessage}>
+          Bạn có chắc chắn muốn xóa phản ánh này? Hành động này không thể hoàn tác.
+        </Text>
+      </ModalCustom>
+
+      {/* Info Modal */}
+      <ModalCustom
+        isModalVisible={showInfoModal}
+        setIsModalVisible={setShowInfoModal}
+        title={infoModalTitle}
+        onPressAction={() => setShowInfoModal(false)}
+        actionText="Đóng"
+        isClose={false}
+      >
+        <Text style={styles.modalMessage}>
+          {infoModalMessage}
         </Text>
       </ModalCustom>
     </SafeAreaView>
@@ -193,7 +519,10 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: theme.colors.background,
+  },
+  listContent: {
+    flexGrow: 1,
   },
   header: {
     backgroundColor: theme.colors.white,
@@ -201,6 +530,9 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.lg,
     marginBottom: SPACING.md,
+  },
+  hamburgerButton: {
+    padding: SPACING.xs,
   },
   profileInfo: {
     flexDirection: 'row',
@@ -275,29 +607,179 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: theme.colors.borderLight,
   },
-  menuContainer: {
+  reportsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingVertical: SPACING.md,
+    backgroundColor: theme.colors.white,
+    marginBottom: SPACING.sm,
   },
-  section: {
-    marginBottom: SPACING.lg,
+  reportsTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
-  sectionTitle: {
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  logoutText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: theme.colors.error,
+  },
+  reportCardWrapper: {
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    marginBottom: SPACING.sm,
+  },
+  menuContainer: {
+    position: 'relative',
+  },
+  menuIconButton: {
+    padding: SPACING.xs,
+    backgroundColor: theme.colors.white,
+    borderRadius: BORDER_RADIUS.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: theme.colors.white,
+    borderRadius: BORDER_RADIUS.md,
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1000,
+    overflow: 'hidden',
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  menuOptionText: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.text,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: theme.colors.borderLight,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingVertical: SPACING['3xl'],
+    minHeight: 300,
+  },
+  emptyStateTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm,
+  },
+  emptyStateText: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.xl,
+    lineHeight: 22,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    gap: SPACING.sm,
+  },
+  createButtonText: {
+    color: theme.colors.white,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+  },
+  footerLoader: {
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING['3xl'],
+  },
+  loadingText: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  menuModalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: BORDER_RADIUS['2xl'],
+    borderTopRightRadius: BORDER_RADIUS['2xl'],
+    maxHeight: '80%',
+    paddingBottom: SPACING.xl,
+  },
+  menuModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: SCREEN_PADDING.horizontal,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  menuModalTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  menuSection: {
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    marginTop: SPACING.lg,
+  },
+  menuSectionTitle: {
     fontSize: FONT_SIZE.sm,
     fontWeight: '600',
     color: theme.colors.textSecondary,
     marginBottom: SPACING.sm,
     marginLeft: SPACING.xs,
   },
-  sectionContent: {
-    backgroundColor: theme.colors.white,
+  menuSectionContent: {
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
-    ...theme.shadows.sm,
   },
-  menuItem: {
+  menuModalItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
+    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
   },
@@ -318,29 +800,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: theme.colors.text,
     fontWeight: '500',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.white,
-    marginHorizontal: SCREEN_PADDING.horizontal,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.xl,
-    gap: SPACING.sm,
-    ...theme.shadows.sm,
-  },
-  logoutText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: theme.colors.error,
-  },
-  versionText: {
-    textAlign: 'center',
-    fontSize: FONT_SIZE.xs,
-    color: theme.colors.textSecondary,
-    marginBottom: SPACING.xl,
   },
   modalMessage: {
     fontSize: FONT_SIZE.md,
