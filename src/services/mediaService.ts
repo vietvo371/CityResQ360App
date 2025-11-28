@@ -30,5 +30,20 @@ export const mediaService = {
             },
         });
         return response.data;
+    },
+
+    getMyMedia: async (params?: { page?: number; type?: 'image' | 'video' }): Promise<ApiResponse<Media[]>> => {
+        const response = await api.get<ApiResponse<Media[]>>('/media/my', { params });
+        return response.data;
+    },
+
+    getMediaDetail: async (mediaId: number): Promise<ApiResponse<Media>> => {
+        const response = await api.get<ApiResponse<Media>>(`/media/${mediaId}`);
+        return response.data;
+    },
+
+    deleteMedia: async (mediaId: number): Promise<ApiResponse<void>> => {
+        const response = await api.delete<ApiResponse<void>>(`/media/${mediaId}`);
+        return response.data;
     }
 };

@@ -13,3 +13,10 @@ export interface NotificationFilterParams {
     per_page?: number;
     da_doc?: boolean;
 }
+
+export interface NotificationSettings {
+    push_enabled: boolean;
+    email_enabled: boolean;
+    report_updates: boolean;
+    comment_replies: boolean;
+}

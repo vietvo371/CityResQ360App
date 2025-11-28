@@ -13,17 +13,17 @@ export const walletService = {
         return response.data;
     },
 
-    getRewards: async (type: number = 0): Promise<ApiResponse<Reward[]>> => {
+    getRewards: async (page: number = 1): Promise<ApiResponse<Reward[]>> => {
         const response = await api.get<ApiResponse<Reward[]>>('/wallet/rewards', {
-            params: { loai: type }
+            params: { page }
         });
         return response.data;
     },
 
-    redeemReward: async (rewardId: number, points: number): Promise<ApiResponse<RedeemResponse>> => {
+    redeemReward: async (rewardId: number, quantity: number = 1): Promise<ApiResponse<RedeemResponse>> => {
         const response = await api.post<ApiResponse<RedeemResponse>>('/wallet/redeem', {
-            phan_thuong_id: rewardId,
-            so_diem: points
+            reward_id: rewardId,
+            quantity: quantity
         });
         return response.data;
     }

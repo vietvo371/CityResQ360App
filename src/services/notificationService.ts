@@ -8,18 +8,38 @@ export const notificationService = {
         return response.data;
     },
 
-    markAsRead: async (id: number): Promise<ApiResponse<any>> => {
-        const response = await api.put<ApiResponse<any>>(`/notifications/${id}/read`);
-        return response.data;
-    },
-
-    markAllAsRead: async (): Promise<ApiResponse<any>> => {
-        const response = await api.put<ApiResponse<any>>('/notifications/read-all');
+    getUnreadNotifications: async (): Promise<ApiResponse<Notification[]>> => {
+        const response = await api.get<ApiResponse<Notification[]>>('/notifications/unread');
         return response.data;
     },
 
     getUnreadCount: async (): Promise<ApiResponse<{ count: number }>> => {
         const response = await api.get<ApiResponse<{ count: number }>>('/notifications/unread-count');
+        return response.data;
+    },
+
+    markAsRead: async (id: number): Promise<ApiResponse<any>> => {
+        const response = await api.post<ApiResponse<any>>(`/notifications/${id}/read`);
+        return response.data;
+    },
+
+    markAllAsRead: async (): Promise<ApiResponse<any>> => {
+        const response = await api.post<ApiResponse<any>>('/notifications/read-all');
+        return response.data;
+    },
+
+    deleteNotification: async (id: number): Promise<ApiResponse<void>> => {
+        const response = await api.delete<ApiResponse<void>>(`/notifications/${id}`);
+        return response.data;
+    },
+
+    updateSettings: async (settings: {
+        push_enabled?: boolean;
+        email_enabled?: boolean;
+        report_updates?: boolean;
+        comment_replies?: boolean;
+    }): Promise<ApiResponse<any>> => {
+        const response = await api.put<ApiResponse<any>>('/notifications/settings', settings);
         return response.data;
     }
 };

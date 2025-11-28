@@ -35,6 +35,12 @@ export interface Media {
     thumbnail_url?: string;
 }
 
+export interface MediaListParams {
+    page?: number;
+    per_page?: number;
+    type?: 'image' | 'video';
+}
+
 export interface ReportDetail extends Report {
     comments?: Comment[];
     votes?: {

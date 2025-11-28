@@ -170,7 +170,7 @@ const MainTabs = () => {
 const MainNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="MainTabs"
+      initialRouteName="Loading"
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',

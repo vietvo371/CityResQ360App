@@ -43,12 +43,13 @@ const ProfileScreen = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      setShowLogoutModal(false);
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
       });
+      await signOut();
+      setShowLogoutModal(false);
+
     } catch (error) {
       console.error('Logout error:', error);
     }

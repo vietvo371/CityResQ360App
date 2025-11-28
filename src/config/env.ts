@@ -4,7 +4,7 @@
 
 const env = {
   // API URL
-  API_URL: 'https://api.midstack.io.vn',
+  API_URL: 'https://api.cityresq360.io.vn',
   BROADCAST_HOST: 'mimo.dragonlab.vn',
   PUSHER_KEY: '1',
 

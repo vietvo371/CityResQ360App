@@ -23,14 +23,55 @@ import {
 } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationService } from '../../services/notificationService';
+import { statsService } from '../../services/statsService';
+import { reportService } from '../../services/reportService';
+import { Report } from '../../types/api/report';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface StatsData {
+  total_reports: number;
+  verified_reports: number;
+  in_progress_reports: number;
+}
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [statsData, setStatsData] = useState<StatsData | null>(null);
+  const [recentReports, setRecentReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      // Fetch stats
+      const statsResponse = await statsService.getCityStats();
+      if (statsResponse.success) {
+        setStatsData({
+          total_reports: statsResponse.data.total_reports || 0,
+          verified_reports: statsResponse.data.resolved_reports || 0,
+          in_progress_reports: statsResponse.data.active_reports || 0,
+        });
+      }
+
+      // Fetch recent reports
+      const reportsResponse = await reportService.getReports({
+        page: 1,
+        per_page: 3,
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
+      if (reportsResponse.success && reportsResponse.data) {
+        setRecentReports(reportsResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching home data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -45,16 +86,26 @@ const HomeScreen = () => {
     };
 
     fetchUnreadCount();
+    fetchData();
 
     // Optional: Poll every minute or use socket if available
     const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // TODO: Fetch data from API
-    setTimeout(() => setRefreshing(false), 1000);
+    await fetchData();
+    // Also refresh unread count
+    try {
+      const response = await notificationService.getUnreadCount();
+      if (response.success) {
+        setUnreadCount(response.data.count);
+      }
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    }
+    setRefreshing(false);
   }, []);
 
   const quickActions = [
@@ -92,92 +143,140 @@ const HomeScreen = () => {
     },
   ];
 
-  const statsData = [
-    {
-      id: 'total',
-      title: 'Tổng sự cố',
-      value: '1,247',
-      change: '12%',
-      trend: 'up',
-      icon: 'alert-circle-outline',
-      color: theme.colors.primary,
-    },
-    {
-      id: 'resolved',
-      title: 'Đã xử lý',
-      value: '1,089',
-      change: '8%',
-      trend: 'up',
-      icon: 'check-circle-outline',
-      color: theme.colors.success,
-    },
-    {
-      id: 'pending',
-      title: 'Đang xử lý',
-      value: '158',
-      change: '5%',
-      trend: 'down',
-      icon: 'progress-clock',
-      color: theme.colors.warning,
-    },
-  ];
+  // Dynamic stats from API
+  const getStatsCards = () => {
+    if (!statsData) {
+      return [
+        {
+          id: 'total',
+          title: 'Tổng sự cố',
+          value: '---',
+          change: '--',
+          trend: 'up' as const,
+          icon: 'alert-circle-outline',
+          color: theme.colors.primary,
+        },
+        {
+          id: 'resolved',
+          title: 'Đã xử lý',
+          value: '---',
+          change: '--',
+          trend: 'up' as const,
+          icon: 'check-circle-outline',
+          color: theme.colors.success,
+        },
+        {
+          id: 'pending',
+          title: 'Đang xử lý',
+          value: '---',
+          change: '--',
+          trend: 'down' as const,
+          icon: 'progress-clock',
+          color: theme.colors.warning,
+        },
+      ];
+    }
 
-  const recentReports = [
-    {
-      id: 1,
-      title: 'Sụt lún mặt đường Nguyễn Huệ',
-      category: 'Hạ tầng',
-      status: 'pending',
-      priority: 'high',
-      time: '14:30 - Hôm nay',
-      location: 'Quận 1, TP.HCM',
-      ticketId: '#INC-2023-001',
-    },
-    {
-      id: 2,
-      title: 'Sự cố đèn chiếu sáng công cộng',
-      category: 'Điện lực',
-      status: 'in_progress',
-      priority: 'medium',
-      time: '09:15 - Hôm nay',
-      location: 'Quận 3, TP.HCM',
-      ticketId: '#INC-2023-002',
-    },
-    {
-      id: 3,
-      title: 'Tập kết rác thải sai quy định',
-      category: 'Môi trường',
-      status: 'resolved',
-      priority: 'low',
-      time: '16:45 - Hôm qua',
-      location: 'Quận 7, TP.HCM',
-      ticketId: '#INC-2023-003',
-    },
-  ];
+    return [
+      {
+        id: 'total',
+        title: 'Tổng sự cố',
+        value: formatNumber(statsData.total_reports),
+        change: '12%',
+        trend: 'up' as const,
+        icon: 'alert-circle-outline',
+        color: theme.colors.primary,
+      },
+      {
+        id: 'resolved',
+        title: 'Đã xử lý',
+        value: formatNumber(statsData.verified_reports),
+        change: '8%',
+        trend: 'up' as const,
+        icon: 'check-circle-outline',
+        color: theme.colors.success,
+      },
+      {
+        id: 'pending',
+        title: 'Đang xử lý',
+        value: formatNumber(statsData.in_progress_reports),
+        change: '5%',
+        trend: 'down' as const,
+        icon: 'progress-clock',
+        color: theme.colors.warning,
+      },
+    ];
+  };
 
-  const getStatusColor = (status: string) => {
+  const formatNumber = (num: number): string => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'k';
+    }
+    return num.toString();
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) {
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      return `${diffMins} phút trước`;
+    } else if (diffHours < 24) {
+      return `${diffHours} giờ trước`;
+    } else if (diffDays === 1) {
+      return 'Hôm qua';
+    } else if (diffDays < 7) {
+      return `${diffDays} ngày trước`;
+    } else {
+      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    }
+  };
+
+  const getCategoryName = (category: number): string => {
+    const categories: { [key: number]: string } = {
+      0: 'Giao thông',
+      1: 'Môi trường',
+      2: 'Cháy nổ',
+      3: 'Rác thải',
+      4: 'Ngập lụt',
+      5: 'Khác',
+    };
+    return categories[category] || 'Khác';
+  };
+
+  const getStatusColor = (status: number): string => {
+    // 0:pending, 1:verified, 2:in_progress, 3:resolved, 4:rejected
     switch (status) {
-      case 'pending': return theme.colors.warning;
-      case 'in_progress': return theme.colors.info;
-      case 'resolved': return theme.colors.success;
+      case 0: return theme.colors.warning; // pending
+      case 1: return theme.colors.info; // verified
+      case 2: return theme.colors.info; // in_progress
+      case 3: return theme.colors.success; // resolved
+      case 4: return theme.colors.error; // rejected
       default: return theme.colors.textSecondary;
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: number): string => {
     switch (status) {
-      case 'pending': return 'Tiếp nhận';
-      case 'in_progress': return 'Đang xử lý';
-      case 'resolved': return 'Hoàn thành';
+      case 0: return 'Tiếp nhận';
+      case 1: return 'Đã xác minh';
+      case 2: return 'Đang xử lý';
+      case 3: return 'Hoàn thành';
+      case 4: return 'Từ chối';
       default: return 'Khác';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: number): string => {
+    // 1:normal, 2:high, 3:urgent
     switch (priority) {
-      case 'high': return theme.colors.error;
-      case 'medium': return theme.colors.warning;
-      case 'low': return theme.colors.success;
+      case 3: return theme.colors.error; // urgent
+      case 2: return theme.colors.warning; // high
+      case 1: return theme.colors.success; // normal
       default: return theme.colors.textSecondary;
     }
   };
@@ -198,7 +297,13 @@ const HomeScreen = () => {
           onPress={() => navigation.navigate('Notifications')}
         >
           <Icon name="bell-outline" size={ICON_SIZE.md} color={theme.colors.text} />
-          <View style={styles.badge} />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              {unreadCount < 10 && (
+                <Text style={styles.badgeText}>{unreadCount}</Text>
+              )}
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -225,7 +330,7 @@ const HomeScreen = () => {
         {/* Dashboard Stats */}
         <View style={styles.section}>
           <View style={styles.statsRow}>
-            {statsData.map((stat) => (
+            {getStatsCards().map((stat) => (
               <View key={stat.id} style={styles.statCard}>
                 <View style={styles.statHeader}>
                   <Icon name={stat.icon} size={ICON_SIZE.sm} color={stat.color} />
@@ -279,37 +384,48 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {recentReports.map((report) => (
-            <TouchableOpacity
-              key={report.id}
-              style={styles.reportItem}
-              onPress={() => navigation.navigate('ReportDetail', { id: report.id })}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.priorityStrip, { backgroundColor: getPriorityColor(report.priority) }]} />
-              <View style={styles.reportMain}>
-                <View style={styles.reportTop}>
-                  <Text style={styles.ticketId}>{report.ticketId}</Text>
-                  <View style={[styles.statusTag, { backgroundColor: getStatusColor(report.status) + '15' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(report.status) }]}>
-                      {getStatusLabel(report.status)}
-                    </Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Đang tải...</Text>
+            </View>
+          ) : recentReports.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Icon name="inbox-outline" size={ICON_SIZE['2xl']} color={theme.colors.textSecondary} />
+              <Text style={styles.emptyText}>Chưa có phản ánh nào</Text>
+            </View>
+          ) : (
+            recentReports.map((report) => (
+              <TouchableOpacity
+                key={report.id}
+                style={styles.reportItem}
+                onPress={() => navigation.navigate('ReportDetail', { id: report.id })}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.priorityStrip, { backgroundColor: getPriorityColor(report.uu_tien) }]} />
+                <View style={styles.reportMain}>
+                  <View style={styles.reportTop}>
+                    <Text style={styles.ticketId}>#{report.id.toString().padStart(6, '0')}</Text>
+                    <View style={[styles.statusTag, { backgroundColor: getStatusColor(report.trang_thai) + '15' }]}>
+                      <Text style={[styles.statusText, { color: getStatusColor(report.trang_thai) }]}>
+                        {getStatusLabel(report.trang_thai)}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.reportTitle} numberOfLines={1}>{report.tieu_de}</Text>
+                  <View style={styles.reportFooter}>
+                    <View style={styles.reportInfo}>
+                      <Icon name="tag-outline" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
+                      <Text style={styles.reportInfoText}>{getCategoryName(report.danh_muc)}</Text>
+                    </View>
+                    <View style={styles.reportInfo}>
+                      <Icon name="clock-outline" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
+                      <Text style={styles.reportInfoText}>{formatDate(report.ngay_tao)}</Text>
+                    </View>
                   </View>
                 </View>
-                <Text style={styles.reportTitle} numberOfLines={1}>{report.title}</Text>
-                <View style={styles.reportFooter}>
-                  <View style={styles.reportInfo}>
-                    <Icon name="tag-outline" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
-                    <Text style={styles.reportInfoText}>{report.category}</Text>
-                  </View>
-                  <View style={styles.reportInfo}>
-                    <Icon name="clock-outline" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
-                    <Text style={styles.reportInfoText}>{report.time}</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* System Status Footer */}
@@ -366,12 +482,36 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: wp('2%'),
     right: wp('2%'),
-    width: wp('2%'),
-    height: wp('2%'),
-    borderRadius: wp('1%'),
+    minWidth: wp('4.5%'),
+    height: wp('4.5%'),
+    borderRadius: wp('2.25%'),
     backgroundColor: theme.colors.error,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: theme.colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: theme.colors.white,
+    fontSize: FONT_SIZE['2xs'],
+    fontWeight: '700',
+  },
+  loadingContainer: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
+  },
+  emptyContainer: {
+    padding: SPACING['2xl'],
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
+    marginTop: SPACING.md,
   },
   locationBar: {
     flexDirection: 'row',

@@ -12,10 +12,16 @@ export const mapService = {
         return response.data;
     },
 
-    getHeatmap: async (bounds: MapBounds, filters?: any): Promise<ApiResponse<HeatmapPoint[]>> => {
-        const boundsStr = `${bounds.min_lat},${bounds.min_lon},${bounds.max_lat},${bounds.max_lon}`;
+    getHeatmap: async (days: number = 7): Promise<ApiResponse<HeatmapPoint[]>> => {
         const response = await api.get<ApiResponse<HeatmapPoint[]>>('/map/heatmap', {
-            params: { bounds: boundsStr, ...filters }
+            params: { days }
+        });
+        return response.data;
+    },
+
+    getClusters: async (zoom: number): Promise<ApiResponse<any[]>> => {
+        const response = await api.get<ApiResponse<any[]>>('/map/clusters', {
+            params: { zoom }
         });
         return response.data;
     },

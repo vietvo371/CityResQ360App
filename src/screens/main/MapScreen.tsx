@@ -27,18 +27,19 @@ import { MapReport, MapBounds } from '../../types/api/map';
 
 const MapScreen = () => {
   const [userLocation, setUserLocation] = useState<number[] | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState<number>(-1);
   const [mapReports, setMapReports] = useState<MapReport[]>([]);
   const [loading, setLoading] = useState(false);
   const cameraRef = useRef<MapboxGL.Camera>(null);
   const mapRef = useRef<MapboxGL.MapView>(null);
 
   const categories = [
-    { id: 'all', label: 'Tất cả', icon: 'view-grid-outline' },
-    { id: 'traffic', label: 'Giao thông', icon: 'road-variant' },
-    { id: 'infrastructure', label: 'Hạ tầng', icon: 'office-building-outline' },
-    { id: 'environment', label: 'Môi trường', icon: 'tree-outline' },
-    { id: 'security', label: 'An ninh', icon: 'shield-outline' },
+    { id: -1, label: 'Tất cả', icon: 'view-grid-outline' },
+    { id: 0, label: 'Giao thông', icon: 'road-variant' },
+    { id: 1, label: 'Môi trường', icon: 'tree-outline' },
+    { id: 2, label: 'Cháy nổ', icon: 'fire' },
+    { id: 3, label: 'Rác thải', icon: 'trash-can-outline' },
+    { id: 4, label: 'Ngập lụt', icon: 'weather-pouring' },
   ];
 
   const onUserLocationUpdate = (location: MapboxGL.Location) => {
@@ -57,33 +58,17 @@ const MapScreen = () => {
     }
   };
 
-
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchMapReports();
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
   const fetchMapReports = async () => {
     if (!mapRef.current) return;
 
     try {
       setLoading(true);
       const bounds = await mapRef.current.getVisibleBounds();
-      // bounds is [[maxLon, maxLat], [minLon, minLat]] or similar depending on platform/version
-      // Let's assume standard GeoJSON format or check docs. 
-      // RNMapbox getVisibleBounds returns Promise<[number, number][]> representing [ne, sw] usually.
 
-      // Safe check
       if (!bounds || bounds.length < 2) return;
 
       const ne = bounds[0]; // [lon, lat]
       const sw = bounds[1]; // [lon, lat]
-
-      // API expects: min_lat,min_lon,max_lat,max_lon
-      // sw is [minLon, minLat], ne is [maxLon, maxLat]
 
       const mapBounds: MapBounds = {
         min_lon: sw[0],
@@ -93,15 +78,12 @@ const MapScreen = () => {
       };
 
       const filters: any = {};
-      if (selectedCategory !== 'all') {
-        // Map category string to ID if needed, or pass string if API supports
-        // Assuming API uses IDs 0, 1, 2 etc. 
-        // For now, let's just pass the category string or map it.
-        // The API doc says: danh_muc=0,1,4
-        // I'll skip detailed mapping for this iteration and just fetch all or pass dummy.
+      if (selectedCategory !== -1) {
+        filters.danh_muc = selectedCategory;
       }
 
       const response = await mapService.getMapReports(mapBounds, filters);
+      console.log('Response:', response);
       if (response.success) {
         setMapReports(response.data);
       }
@@ -120,7 +102,12 @@ const MapScreen = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // ...
+  // Re-fetch when category changes
+  useEffect(() => {
+    if (mapRef.current) {
+      fetchMapReports();
+    }
+  }, [selectedCategory]);
 
   return (
     <View style={styles.container}>
@@ -134,7 +121,20 @@ const MapScreen = () => {
         attributionEnabled={false}
         onRegionDidChange={fetchMapReports}
       >
-        {/* ... Camera & UserLocation ... */}
+        <MapboxGL.Camera
+          ref={cameraRef}
+          zoomLevel={13}
+          centerCoordinate={[106.7009, 10.7769]} // TP.HCM
+          animationMode="flyTo"
+          animationDuration={1000}
+        />
+
+        <MapboxGL.UserLocation
+          visible={true}
+          onUpdate={onUserLocationUpdate}
+          showsUserHeadingIndicator
+          minDisplacement={10}
+        />
 
         {mapReports.map((report) => (
           <MapboxGL.PointAnnotation
@@ -146,12 +146,24 @@ const MapScreen = () => {
               <View style={[styles.marker, { backgroundColor: report.marker_color || theme.colors.primary }]}>
                 <Icon name="alert" size={14} color={theme.colors.white} />
               </View>
-              {/* Priority dot if needed */}
+              {/* Priority indicator */}
+              {report.uu_tien >= 2 && (
+                <View style={[styles.markerDot, { backgroundColor: report.uu_tien === 3 ? theme.colors.error : theme.colors.warning }]} />
+              )}
             </View>
             <MapboxGL.Callout title={report.tieu_de} />
           </MapboxGL.PointAnnotation>
         ))}
       </MapboxGL.MapView>
+
+      {/* Loading Indicator */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <Text style={styles.loadingText}>Đang tải...</Text>
+          </View>
+        </View>
+      )}
 
 
       {/* Header Search Bar */}
@@ -326,6 +338,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...theme.shadows.md,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: Platform.select({ ios: hp('15%'), android: hp('13%') }),
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingBox: {
+    backgroundColor: theme.colors.white,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    ...theme.shadows.md,
+  },
+  loadingText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
   },
   reportButton: {
     width: 'auto',

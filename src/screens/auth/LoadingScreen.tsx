@@ -17,23 +17,25 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ navigation }) => {
     const checkLogin = async () => {
       try {
         await new Promise((resolve: any) => setTimeout(resolve, 1500));
-        const res = await api.get('/check-login');
-        if (res.data?.status) {
-          // Check user role to navigate to correct tabs
-          const userRole = res.data?.user?.role || res.data?.role || 'student';
-          if (userRole === 'parent') {
-            navigation.replace('ParentTabs');
-          } else {
-            navigation.replace('StudentTabs');
-          }
+        const res = await api.get('/auth/check-login');
+        console.log('Check login response:', res.data);
+
+        // Check if login is successful based on API response structure
+        if (res.data?.success && res.data?.data?.authenticated) {
+          // User is authenticated, navigate to main app
+          const userData = res.data?.data?.user;
+          console.log('User authenticated:', userData);
+          navigation.replace('MainTabs');
         } else {
+          // User is not authenticated
+          console.log('User not authenticated');
           navigation.replace('Login');
         }
-      } catch (error) {
-        console.error('Error checking login:', error);
+      } catch (error: any) {
+        // Handle unauthenticated error (401) or network errors
+        console.error('Error checking login:', error.response?.data || error.message);
         navigation.replace('Login');
       }
-
     }
     checkLogin();
   }, [navigation]);

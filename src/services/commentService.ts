@@ -15,5 +15,27 @@ export const commentService = {
             noi_dung: content
         });
         return response.data;
+    },
+
+    updateComment: async (commentId: number, content: string): Promise<ApiResponse<Comment>> => {
+        const response = await api.put<ApiResponse<Comment>>(`/comments/${commentId}`, {
+            noi_dung: content
+        });
+        return response.data;
+    },
+
+    deleteComment: async (commentId: number): Promise<ApiResponse<void>> => {
+        const response = await api.delete<ApiResponse<void>>(`/comments/${commentId}`);
+        return response.data;
+    },
+
+    likeComment: async (commentId: number): Promise<ApiResponse<any>> => {
+        const response = await api.post<ApiResponse<any>>(`/comments/${commentId}/like`);
+        return response.data;
+    },
+
+    unlikeComment: async (commentId: number): Promise<ApiResponse<any>> => {
+        const response = await api.delete<ApiResponse<any>>(`/comments/${commentId}/like`);
+        return response.data;
     }
 };
