@@ -17,8 +17,9 @@ import {
 } from '../../theme';
 import env from '../../config/env';
 
-// Initialize Mapbox
-MapboxGL.setAccessToken(env.MAPBOX_ACCESS_TOKEN);
+// Initialize MapTiler (Open Source Map Provider)
+// MapTiler is API-compatible with Mapbox but supports open source projects
+MapboxGL.setAccessToken(env.MAPTILER_API_KEY);
 
 import { mapService } from '../../services/mapService';
 import { reportService } from '../../services/reportService';
@@ -245,7 +246,7 @@ const MapScreen = () => {
       <MapboxGL.MapView
         ref={mapRef}
         style={styles.map}
-        styleURL={MapboxGL.StyleURL.Street}
+        styleURL={`https://api.maptiler.com/maps/streets-v2/style.json?key=${env.MAPTILER_API_KEY}`}
         logoEnabled={false}
         attributionEnabled={false}
         onRegionDidChange={fetchMapReports}
