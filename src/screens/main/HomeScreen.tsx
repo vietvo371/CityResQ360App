@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -52,9 +51,12 @@ const HomeScreen = () => {
   const [statsData, setStatsData] = useState<StatsData | null>(null);
   const [recentReports, setRecentReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
+      setError(null); // Reset error state
+
       // Fetch stats
       const statsResponse = await statsService.getCityStats();
       console.log('statsResponse', statsResponse);
@@ -82,6 +84,7 @@ const HomeScreen = () => {
       }
     } catch (error) {
       console.error('Error fetching home data:', error);
+      setError('Không thể tải dữ liệu. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -137,23 +140,16 @@ const HomeScreen = () => {
       subtitle: 'Lịch sử phản ánh',
       icon: 'file-document-outline',
       color: theme.colors.info,
-      onPress: () => navigation.navigate('MyReports'),
+      onPress: () => navigation.navigate('MainTabs', { screen: 'Profile' }),
+
     },
     {
-      id: 'nearby',
-      title: 'Gần đây',
-      subtitle: 'Sự cố quanh bạn',
-      icon: 'map-marker-radius-outline',
+      id: 'map',
+      title: 'Bản đồ',
+      subtitle: 'Xem trên bản đồ',
+      icon: 'map-outline',
       color: theme.colors.warning,
-      onPress: () => navigation.navigate('NearbyReports'),
-    },
-    {
-      id: 'stats',
-      title: 'Thống kê',
-      subtitle: 'Dữ liệu tổng hợp',
-      icon: 'chart-box-outline',
-      color: theme.colors.success,
-      onPress: () => navigation.navigate('Dashboard'),
+      onPress: () => navigation.navigate('MainTabs', { screen: 'Map' }),
     },
   ];
 
@@ -328,19 +324,28 @@ const HomeScreen = () => {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerTop}>
-        <View>
-          <Text style={styles.headerDate}>
-            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </Text>
-          <Text style={styles.headerGreeting}>
-            Xin chào, {user?.ho_ten || 'Cư dân'}
-          </Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {user?.ho_ten?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.greetingContainer}>
+            <Text style={styles.headerDate}>
+              {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </Text>
+            <Text style={styles.headerGreeting}>
+              Xin chào, {user?.ho_ten?.split(' ').pop() || 'Cư dân'}! 👋
+            </Text>
+          </View>
         </View>
         <TouchableOpacity
           style={styles.notificationBtn}
           onPress={() => navigation.navigate('Notifications')}
         >
-          <Icon name="bell-outline" size={ICON_SIZE.md} color={theme.colors.text} />
+          <Icon name="bell-outline" size={ICON_SIZE.md} color={theme.colors.white} />
           {unreadCount > 0 && (
             <View style={styles.badge}>
               {unreadCount < 10 && (
@@ -352,18 +357,30 @@ const HomeScreen = () => {
       </View>
 
       <View style={styles.locationBar}>
-        <Icon name="map-marker-outline" size={ICON_SIZE.xs} color={theme.colors.primary} />
-        <Text style={styles.locationText}>TP. Hồ Chí Minh</Text>
-        <Icon name="chevron-down" size={ICON_SIZE.xs} color={theme.colors.textSecondary} />
+        <View style={styles.locationBadge}>
+          <Icon name="map-marker" size={ICON_SIZE.xs} color={theme.colors.white} />
+          <Text style={styles.locationText}>TP. Hồ Chí Minh</Text>
+        </View>
       </View>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
 
       {renderHeader()}
+
+      {/* Error Banner */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Icon name="alert-circle-outline" size={ICON_SIZE.md} color={theme.colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={fetchData} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -374,31 +391,43 @@ const HomeScreen = () => {
         {/* Dashboard Stats */}
         <View style={styles.section}>
           <View style={styles.statsRow}>
-            {getStatsCards().map((stat) => (
-              <View key={stat.id} style={styles.statCard}>
-                <View style={styles.statHeader}>
-                  <Icon name={stat.icon} size={ICON_SIZE.sm} color={stat.color} />
-                  <View style={[styles.trendBadge, { backgroundColor: stat.trend === 'up' ? theme.colors.successLight : theme.colors.errorLight }]}>
+            {getStatsCards().map((stat, index) => (
+              <TouchableOpacity
+                key={stat.id}
+                style={[styles.statCard, {
+                  backgroundColor:
+                    index === 0 ? theme.colors.primary
+                      : index === 1 ? theme.colors.success
+                        : theme.colors.warning
+                }]}
+                activeOpacity={0.8}
+              >
+                <View style={styles.statIconContainer}>
+                  <Icon name={stat.icon} size={ICON_SIZE.xl} color="rgba(255, 255, 255, 0.9)" />
+                </View>
+                <View style={styles.statContent}>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statTitle}>{stat.title}</Text>
+                  <View style={styles.statTrend}>
                     <Icon
-                      name={stat.trend === 'up' ? 'arrow-up' : 'arrow-down'}
-                      size={ICON_SIZE.xs * 0.7}
-                      color={stat.trend === 'up' ? theme.colors.success : theme.colors.error}
+                      name={stat.trend === 'up' ? 'trending-up' : 'trending-down'}
+                      size={ICON_SIZE.xs}
+                      color="rgba(255, 255, 255, 0.9)"
                     />
-                    <Text style={[styles.trendText, { color: stat.trend === 'up' ? theme.colors.success : theme.colors.error }]}>
-                      {stat.change}
-                    </Text>
+                    <Text style={styles.statChange}>{stat.change}</Text>
                   </View>
                 </View>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statTitle}>{stat.title}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {/* Quick Actions Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chức năng chính</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Chức năng chính</Text>
+            <View style={styles.sectionDivider} />
+          </View>
           <View style={styles.actionGrid}>
             {quickActions.map((action) => (
               <TouchableOpacity
@@ -407,12 +436,17 @@ const HomeScreen = () => {
                 onPress={action.onPress}
                 activeOpacity={0.7}
               >
-                <View style={[styles.actionIconBox, { backgroundColor: action.color + '10' }]}>
-                  <Icon name={action.icon} size={ICON_SIZE.lg} color={action.color} />
-                </View>
-                <View style={styles.actionContent}>
-                  <Text style={styles.actionTitle}>{action.title}</Text>
-                  <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+                <View style={styles.actionCard}>
+                  <View style={[styles.actionIconBox, { backgroundColor: action.color }]}>
+                    <Icon name={action.icon} size={ICON_SIZE.xl} color={theme.colors.white} />
+                  </View>
+                  <View style={styles.actionContent}>
+                    <Text style={styles.actionTitle}>{action.title}</Text>
+                    <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+                  </View>
+                  <View style={styles.actionArrow}>
+                    <Icon name="chevron-right" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
@@ -422,8 +456,11 @@ const HomeScreen = () => {
         {/* Top Categories Section */}
         {statsData?.top_danh_muc && statsData.top_danh_muc.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Danh mục phổ biến</Text>
-            <View style={styles.categoryList}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Danh mục phổ biến</Text>
+              <View style={styles.sectionDivider} />
+            </View>
+            <View style={styles.categoryCard}>
               {statsData.top_danh_muc.slice(0, 5).map((category, index) => {
                 const percentage = statsData.tong_phan_anh > 0
                   ? ((category.total / statsData.tong_phan_anh) * 100).toFixed(1)
@@ -432,12 +469,12 @@ const HomeScreen = () => {
                   <View key={category.danh_muc} style={styles.categoryItem}>
                     <View style={styles.categoryLeft}>
                       <View style={[styles.categoryRank, {
-                        backgroundColor: index === 0 ? theme.colors.primary + '15' : theme.colors.backgroundSecondary
+                        backgroundColor: index === 0 ? theme.colors.primary : theme.colors.backgroundSecondary
                       }]}>
                         <Text style={[styles.categoryRankText, {
-                          color: index === 0 ? theme.colors.primary : theme.colors.textSecondary
+                          color: index === 0 ? theme.colors.white : theme.colors.textSecondary
                         }]}>
-                          {index + 1}
+                          #{index + 1}
                         </Text>
                       </View>
                       <View style={styles.categoryInfo}>
@@ -466,9 +503,12 @@ const HomeScreen = () => {
         {/* Recent Incidents List */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sự cố mới nhất</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('ReportList')}>
-              <Text style={styles.seeAllLink}>Xem tất cả</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: SPACING.md }}>
+              <Text style={styles.sectionTitle}>Sự cố mới nhất</Text>
+              <View style={[styles.sectionDivider, { flex: 1, maxWidth: 100 }]} />
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Reports' })}>
+              <Text style={styles.seeAllLink}>Xem tất cả →</Text>
             </TouchableOpacity>
           </View>
 
@@ -480,6 +520,14 @@ const HomeScreen = () => {
             <View style={styles.emptyContainer}>
               <Icon name="inbox-outline" size={ICON_SIZE['2xl']} color={theme.colors.textSecondary} />
               <Text style={styles.emptyText}>Chưa có phản ánh nào</Text>
+              <Text style={styles.emptySubtext}>Hãy là người đầu tiên báo cáo sự cố trong khu vực</Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => navigation.navigate('CreateReport')}
+              >
+                <Icon name="plus-circle-outline" size={ICON_SIZE.md} color={theme.colors.white} />
+                <Text style={styles.emptyButtonText}>Tạo phản ánh mới</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             recentReports.map((report) => (
@@ -535,7 +583,7 @@ const HomeScreen = () => {
         </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 
@@ -544,38 +592,84 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.backgroundSecondary,
   },
+  // Header Styles
   headerContainer: {
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: SCREEN_PADDING.horizontal,
-    paddingVertical: SCREEN_PADDING.vertical,
-    backgroundColor: theme.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING['2xl'],
+    borderBottomLeftRadius: BORDER_RADIUS['2xl'],
+    borderBottomRightRadius: BORDER_RADIUS['2xl'],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: SPACING.md,
+  },
+  avatarContainer: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  avatarCircle: {
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: theme.colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  avatarText: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  greetingContainer: {
+    flex: 1,
   },
   headerDate: {
-    fontSize: FONT_SIZE.xs,
-    color: theme.colors.textSecondary,
+    fontSize: FONT_SIZE['2xs'],
+    color: 'rgba(255, 255, 255, 0.85)',
     textTransform: 'uppercase',
     fontWeight: '600',
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
   headerGreeting: {
     fontSize: FONT_SIZE.xl,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: theme.colors.white,
   },
   notificationBtn: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
-    backgroundColor: theme.colors.backgroundSecondary,
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
     position: 'relative',
   },
   badge: {
@@ -612,16 +706,48 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     color: theme.colors.textSecondary,
     marginTop: SPACING.md,
+    fontWeight: '600',
   },
-  locationBar: {
+  emptySubtext: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.textSecondary,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.lg,
+    textAlign: 'center',
+  },
+  emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    gap: SPACING.sm,
+  },
+  emptyButtonText: {
+    color: theme.colors.white,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+  },
+  locationBar: {
+    marginTop: SPACING.md,
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.full,
+    gap: 4,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   locationText: {
     fontSize: FONT_SIZE.sm,
-    color: theme.colors.text,
-    fontWeight: '500',
+    color: theme.colors.white,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -629,6 +755,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: SCREEN_PADDING.horizontal,
     paddingBottom: SPACING['4xl'],
+    marginTop: SPACING['2xl'],
   },
   section: {
     marginBottom: SPACING.xl,
@@ -643,88 +770,123 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: theme.colors.text,
-    marginBottom: SPACING.md,
   },
   seeAllLink: {
     fontSize: FONT_SIZE.sm,
     color: theme.colors.primary,
     fontWeight: '600',
   },
+  // Stats Card Styles
   statsRow: {
     flexDirection: 'row',
-    gap: SPACING.md,
+    gap: SPACING.sm,
+    marginTop: -SPACING['3xl'],
   },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+    minHeight: hp('16%'),
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  statIconContainer: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: BORDER_RADIUS.lg,
-    padding: CARD.paddingSmall,
-    ...theme.shadows.sm,
-    minHeight: hp('14%'),
-    justifyContent: 'space-between',
+    padding: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
-  statHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  trendBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-    gap: 2,
-  },
-  trendText: {
-    fontSize: FONT_SIZE['2xs'],
-    fontWeight: '700',
+  statContent: {
+    marginTop: SPACING.xs,
   },
   statValue: {
-    fontSize: FONT_SIZE['2xl'],
-    fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 2,
+    fontSize: FONT_SIZE['3xl'],
+    fontWeight: '800',
+    color: theme.colors.white,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   statTitle: {
     fontSize: FONT_SIZE.xs,
-    color: theme.colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    marginBottom: SPACING.xs,
   },
-  actionGrid: {
+  statTrend: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statChange: {
+    fontSize: FONT_SIZE.xs,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontWeight: '700',
+  },
+  // Section Header Styles
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    gap: SPACING.md,
+  },
+  sectionDivider: {
+    flex: 1,
+    height: 2,
+    backgroundColor: theme.colors.primary + '30',
+    borderRadius: 1,
+  },
+  // Action Grid Styles
+  actionGrid: {
     gap: SPACING.md,
   },
   actionItem: {
-    width: (wp('100%') - SCREEN_PADDING.horizontal * 2 - SPACING.md) / 2,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
     backgroundColor: theme.colors.white,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: CARD.padding,
-    flexDirection: 'column',
-    ...theme.shadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  actionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    gap: SPACING.md,
   },
   actionIconBox: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: BORDER_RADIUS.md,
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: BORDER_RADIUS.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
   },
   actionContent: {
     flex: 1,
   },
   actionTitle: {
     fontSize: FONT_SIZE.md,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.text,
     marginBottom: 2,
   },
   actionSubtitle: {
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
+    fontWeight: '500',
   },
+  actionArrow: {
+    opacity: 0.5,
+  },
+  // Report Item Styles
   reportItem: {
     backgroundColor: theme.colors.white,
     borderRadius: BORDER_RADIUS.md,
@@ -798,51 +960,56 @@ const styles = StyleSheet.create({
   categoryList: {
     gap: SPACING.sm,
   },
-  categoryItem: {
+  categoryCard: {
     backgroundColor: theme.colors.white,
-    borderRadius: BORDER_RADIUS.md,
-    padding: CARD.paddingSmall,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+    ...theme.shadows.md,
+  },
+  categoryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...theme.shadows.sm,
-    marginBottom: SPACING.sm,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight + '40',
   },
   categoryLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
   categoryRank: {
-    width: wp('8%'),
-    height: wp('8%'),
-    borderRadius: wp('4%'),
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   categoryRankText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+    fontWeight: '800',
   },
   categoryInfo: {
     flex: 1,
   },
   categoryName: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: FONT_SIZE.md,
     fontWeight: '600',
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   categoryProgressBar: {
-    height: 4,
+    height: 6,
     backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 2,
+    borderRadius: BORDER_RADIUS.sm,
     overflow: 'hidden',
   },
   categoryProgress: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: BORDER_RADIUS.sm,
   },
   categoryRight: {
     alignItems: 'flex-end',
@@ -857,6 +1024,31 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
     marginTop: 2,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.errorLight || theme.colors.error + '15',
+    paddingHorizontal: SCREEN_PADDING.horizontal,
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.error,
+    fontWeight: '500',
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    backgroundColor: theme.colors.error,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  retryButtonText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.white,
+    fontWeight: '600',
   },
 });
 

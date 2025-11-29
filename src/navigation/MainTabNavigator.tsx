@@ -140,19 +140,19 @@ const MainTabs = () => {
         }}
       />
       <MainTab.Screen
-        name="Reports"
-        component={ReportsScreen}
-        options={{
-          title: 'Phản ánh',
-          tabBarIcon: ({ color }) => <Icon name="alert-circle-outline" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-      <MainTab.Screen
         name="Wallet"
         component={WalletScreen}
         options={{
           title: 'Ví điểm',
           tabBarIcon: ({ color }) => <Icon name="wallet-outline" size={TAB_BAR.iconSize} color={color} />,
+        }}
+      />
+      <MainTab.Screen
+        name="Reports"
+        component={ReportsScreen}
+        options={{
+          title: 'Phản ánh',
+          tabBarIcon: ({ color }) => <Icon name="alert-circle-outline" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
       <MainTab.Screen

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, ActivityIndicator, FlatList, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, ActivityIndicator, FlatList, Modal, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -41,6 +41,10 @@ const ProfileScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Animation refs for menu modal
+  const slideAnim = useRef(new Animated.Value(500)).current; // Start off-screen
+  const backdropAnim = useRef(new Animated.Value(0)).current; // Start transparent
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -151,7 +155,7 @@ const ProfileScreen = () => {
   };
 
   const handleMenuPress = (itemId: string) => {
-    setShowMenuModal(false);
+    handleCloseMenuModal();
 
     setTimeout(() => {
       switch (itemId) {
@@ -181,6 +185,43 @@ const ProfileScreen = () => {
       }
     }, 300);
   };
+
+  const handleCloseMenuModal = () => {
+    // Animate out
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 500,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowMenuModal(false);
+    });
+  };
+
+  // Animate in when menu modal appears
+  useEffect(() => {
+    if (showMenuModal) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showMenuModal]);
 
   const handleReportPress = (report: Report) => {
     (navigation as any).navigate('ReportDetail', { id: report.id, reportId: report.id });
@@ -411,28 +452,39 @@ const ProfileScreen = () => {
         />
       )}
 
-      {/* Menu Modal */}
-      <Modal
-        visible={showMenuModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowMenuModal(false)}
-        statusBarTranslucent
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenuModal(false)}
-        >
-          <TouchableOpacity
-            style={styles.menuModalContent}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
+      {/* Menu Modal - Animated Bottom Sheet */}
+      {showMenuModal && (
+        <>
+          {/* Backdrop */}
+          <Animated.View
+            style={[
+              styles.backdrop,
+              {
+                opacity: backdropAnim,
+              }
+            ]}
           >
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={handleCloseMenuModal}
+            />
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.menuModalContent,
+              {
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+
             {/* Modal Header */}
             <View style={styles.menuModalHeader}>
               <Text style={styles.menuModalTitle}>Cài đặt</Text>
-              <TouchableOpacity onPress={() => setShowMenuModal(false)}>
+              <TouchableOpacity onPress={handleCloseMenuModal}>
                 <Icon name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
@@ -471,9 +523,9 @@ const ProfileScreen = () => {
                 </View>
               ))}
             </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+          </Animated.View>
+        </>
+      )}
 
       {/* Logout Confirmation Modal */}
       <ModalCustom
@@ -732,17 +784,36 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: theme.colors.textSecondary,
   },
-  modalOverlay: {
-    flex: 1,
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    zIndex: 999,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: theme.colors.borderLight,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   menuModalContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: theme.colors.white,
     borderTopLeftRadius: BORDER_RADIUS['2xl'],
     borderTopRightRadius: BORDER_RADIUS['2xl'],
     maxHeight: '80%',
     paddingBottom: SPACING.xl,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
   },
   menuModalHeader: {
     flexDirection: 'row',
