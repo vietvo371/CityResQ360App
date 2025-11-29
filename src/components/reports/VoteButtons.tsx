@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme, SPACING, FONT_SIZE, BORDER_RADIUS } from '../../theme';
@@ -24,6 +24,13 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
     const [downvotes, setDownvotes] = useState(initialDownvotes);
     const [userVoted, setUserVoted] = useState<number | null>(initialUserVoted);
     const [loading, setLoading] = useState(false);
+
+    // Sync state with props when they change
+    useEffect(() => {
+        setUpvotes(initialUpvotes);
+        setDownvotes(initialDownvotes);
+        setUserVoted(initialUserVoted);
+    }, [initialUpvotes, initialDownvotes, initialUserVoted]);
 
     const handleVote = async (type: 'upvote' | 'downvote') => {
         if (loading || disabled) return;

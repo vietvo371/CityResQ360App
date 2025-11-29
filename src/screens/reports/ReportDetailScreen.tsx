@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Modal } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList } from '../../navigation/types';
 import PageHeader from '../../component/PageHeader';
 import VoteButtons from '../../components/reports/VoteButtons';
@@ -14,6 +15,8 @@ import { commentService } from '../../services/commentService';
 import { ReportDetail } from '../../types/api/report';
 
 type ReportDetailRouteProp = RouteProp<RootStackParamList, 'ReportDetail'>;
+
+const VOTE_STORAGE_KEY = 'user_votes';
 
 const ReportDetailScreen = () => {
   const route = useRoute<ReportDetailRouteProp>();
@@ -27,11 +30,41 @@ const ReportDetailScreen = () => {
   const [rating, setRating] = useState(5);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [userVote, setUserVote] = useState<number | null>(null); // 1: upvoted, -1: downvoted, null: not voted
+
+  // Load user vote from AsyncStorage
+  const loadUserVote = async () => {
+    try {
+      const votesJson = await AsyncStorage.getItem(VOTE_STORAGE_KEY);
+      if (votesJson) {
+        const votes = JSON.parse(votesJson);
+        setUserVote(votes[id] || null);
+      }
+    } catch (error) {
+      console.error('Error loading user vote:', error);
+    }
+  };
+
+  // Save user vote to AsyncStorage
+  const saveUserVote = async (vote: number | null) => {
+    try {
+      const votesJson = await AsyncStorage.getItem(VOTE_STORAGE_KEY);
+      const votes = votesJson ? JSON.parse(votesJson) : {};
+      if (vote === null) {
+        delete votes[id];
+      } else {
+        votes[id] = vote;
+      }
+      await AsyncStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(votes));
+      setUserVote(vote);
+    } catch (error) {
+      console.error('Error saving user vote:', error);
+    }
+  };
 
   const fetchReportDetail = useCallback(async () => {
     try {
       const response = await reportService.getReportDetail(id);
-      console.log('Report detail:', response);
       if (response.success) {
         setReport(response.data);
       }
@@ -44,17 +77,38 @@ const ReportDetailScreen = () => {
 
   useEffect(() => {
     fetchReportDetail();
+    loadUserVote(); // Load user's vote state from AsyncStorage
     // Increment view count
     reportService.incrementView(id).catch(err => console.error('Error incrementing view:', err));
   }, [fetchReportDetail, id]);
 
   const handleVote = async (type: 'upvote' | 'downvote') => {
     try {
+      const voteValue = type === 'upvote' ? 1 : -1;
+
+      // Determine new vote state
+      let newVoteState: number | null;
+      if (userVote === voteValue) {
+        // Clicking same vote = remove vote
+        newVoteState = null;
+      } else {
+        // Clicking different vote = set new vote
+        newVoteState = voteValue;
+      }
+
+      // Save vote state locally
+      await saveUserVote(newVoteState);
+
+      // Call API
       const response = await reportService.voteReport(id, type);
       console.log('Vote response:', response);
-      // Refresh to get updated counts (optional, as VoteButtons handles optimistic UI)
+
+      // Refresh to get updated counts
+      fetchReportDetail();
     } catch (error) {
       console.error('Vote error:', error);
+      // Revert vote state on error
+      await loadUserVote();
     }
   };
 
@@ -218,7 +272,7 @@ const ReportDetailScreen = () => {
                 reportId={report.id}
                 initialUpvotes={report.luot_ung_ho}
                 initialDownvotes={report.luot_khong_ung_ho || 0}
-                userVoted={null} // TODO: Update when votes API returns user_voted
+                userVoted={userVote}
                 onVote={handleVote}
               />
 

@@ -80,6 +80,7 @@ export interface MediaListParams {
 }
 
 export interface ReportDetail extends Report {
+    user_voted?: number | null; // 1: upvoted, 0: downvoted, null: not voted (from API)
     comments?: Comment[];
     votes?: {
         total_upvotes: number;

@@ -49,9 +49,9 @@ export const reportService = {
     },
 
     voteReport: async (id: number, type: 'upvote' | 'downvote'): Promise<ApiResponse<any>> => {
-        // API uses "ung_ho" or "khong_ung_ho"
-        const loai_vote = type === 'upvote' ? 'ung_ho' : 'khong_ung_ho';
-        const response = await api.post<ApiResponse<any>>(`/reports/${id}/vote`, { loai_vote });
+        // API uses loai_binh_chon: 1 (upvote) or -1 (downvote)
+        const loai_binh_chon = type === 'upvote' ? 1 : -1;
+        const response = await api.post<ApiResponse<any>>(`/reports/${id}/vote`, { loai_binh_chon });
         return response.data;
     },
 

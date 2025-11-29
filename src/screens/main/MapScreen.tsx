@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform, ScrollView, TextInput, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,7 +21,9 @@ import env from '../../config/env';
 MapboxGL.setAccessToken(env.MAPBOX_ACCESS_TOKEN);
 
 import { mapService } from '../../services/mapService';
+import { reportService } from '../../services/reportService';
 import { MapReport, MapBounds } from '../../types/api/map';
+import { ReportDetail } from '../../types/api/report';
 
 // ...
 
@@ -32,8 +34,14 @@ const MapScreen = () => {
   const [loading, setLoading] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedReport, setSelectedReport] = useState<MapReport | null>(null);
+  const [reportDetail, setReportDetail] = useState<ReportDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const cameraRef = useRef<MapboxGL.Camera>(null);
   const mapRef = useRef<MapboxGL.MapView>(null);
+
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(500)).current; // Start off-screen
+  const backdropAnim = useRef(new Animated.Value(0)).current; // Start transparent
 
   const categories = [
     { id: -1, label: 'Tất cả', icon: 'view-grid-outline' },
@@ -92,6 +100,18 @@ const MapScreen = () => {
       case 4: return 'Từ chối';
       default: return 'Khác';
     }
+  };
+
+  const getCategoryIcon = (category: number): string => {
+    const iconMap: { [key: number]: string } = {
+      0: 'road-variant',        // Giao thông
+      1: 'tree-outline',        // Môi trường
+      2: 'fire',                // Cháy nổ
+      3: 'trash-can-outline',   // Rác thải
+      4: 'weather-pouring',     // Ngập lụt
+      5: 'alert-circle',        // Khác
+    };
+    return iconMap[category] || 'alert-circle';
   };
 
   const fetchMapReports = async () => {
@@ -159,6 +179,65 @@ const MapScreen = () => {
     }
   }, [selectedCategory]);
 
+  // Fetch report detail when a marker is selected
+  const fetchReportDetail = async (reportId: number) => {
+    try {
+      setLoadingDetail(true);
+      const response = await reportService.getReportDetail(reportId);
+      if (response.success) {
+        setReportDetail(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching report detail:', error);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleMarkerSelect = (report: MapReport) => {
+    setSelectedReport(report);
+    setReportDetail(null); // Reset detail
+    fetchReportDetail(report.id);
+  };
+
+  const handleCloseSheet = () => {
+    // Animate out
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 500,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setSelectedReport(null);
+      setReportDetail(null);
+    });
+  };
+
+  // Animate in when bottom sheet appears
+  useEffect(() => {
+    if (selectedReport) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 11,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [selectedReport]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -195,11 +274,15 @@ const MapScreen = () => {
             key={report.id.toString()}
             id={`report-${report.id}`}
             coordinate={[report.kinh_do, report.vi_do]}
-            onSelected={() => setSelectedReport(report)}
+            onSelected={() => handleMarkerSelect(report)}
           >
             <View style={styles.markerContainer}>
               <View style={[styles.marker, { backgroundColor: report.marker_color || theme.colors.primary }]}>
-                <Icon name="alert" size={14} color={theme.colors.white} />
+                <Icon
+                  name={getCategoryIcon(report.danh_muc)}
+                  size={16}
+                  color={theme.colors.white}
+                />
               </View>
               {/* Priority indicator */}
               {report.uu_tien >= 2 && (
@@ -289,65 +372,185 @@ const MapScreen = () => {
 
       {/* Report Detail Bottom Sheet */}
       {selectedReport && (
-        <View style={styles.bottomSheet}>
-          <View style={styles.sheetHandle} />
+        <>
+          {/* Backdrop */}
+          <Animated.View
+            style={[
+              styles.backdrop,
+              {
+                opacity: backdropAnim,
+              }
+            ]}
+          >
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={handleCloseSheet}
+            />
+          </Animated.View>
 
-          <View style={styles.sheetHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sheetTitle} numberOfLines={2}>
-                {selectedReport.tieu_de}
-              </Text>
-              <Text style={styles.sheetId}>#{selectedReport.id}</Text>
-            </View>
-            <TouchableOpacity onPress={() => setSelectedReport(null)}>
-              <Icon name="close" size={ICON_SIZE.md} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              {
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
+            <View style={styles.sheetHandle} />
 
-          <View style={styles.sheetContent}>
-            <View style={styles.sheetRow}>
-              <View style={styles.sheetBadge}>
-                <Icon name="tag-outline" size={16} color={theme.colors.primary} />
-                <Text style={styles.sheetBadgeText}>
-                  {selectedReport.danh_muc_text || getCategoryName(selectedReport.danh_muc)}
+            <View style={styles.sheetHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sheetTitle} numberOfLines={2}>
+                  {selectedReport.tieu_de}
                 </Text>
+                <Text style={styles.sheetId}>#{selectedReport.id}</Text>
               </View>
+              <TouchableOpacity onPress={handleCloseSheet}>
+                <Icon name="close" size={ICON_SIZE.md} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
 
-              <View style={[styles.sheetBadge, {
-                backgroundColor: getStatusColor(selectedReport.trang_thai) + '15'
-              }]}>
-                <Text style={[styles.sheetBadgeText, {
-                  color: getStatusColor(selectedReport.trang_thai)
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Badges */}
+              <View style={styles.sheetRow}>
+                <View style={styles.sheetBadge}>
+                  <Icon name="tag-outline" size={16} color={theme.colors.primary} />
+                  <Text style={styles.sheetBadgeText}>
+                    {selectedReport.danh_muc_text || getCategoryName(selectedReport.danh_muc)}
+                  </Text>
+                </View>
+
+                <View style={[styles.sheetBadge, {
+                  backgroundColor: getStatusColor(selectedReport.trang_thai) + '15'
                 }]}>
-                  {getStatusLabel(selectedReport.trang_thai)}
-                </Text>
+                  <Text style={[styles.sheetBadgeText, {
+                    color: getStatusColor(selectedReport.trang_thai)
+                  }]}>
+                    {getStatusLabel(selectedReport.trang_thai)}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.sheetActions}>
-              <TouchableOpacity
-                style={styles.sheetButton}
-                onPress={() => {
-                  // Navigate to detail screen
-                  setSelectedReport(null);
-                }}
-              >
-                <Icon name="information-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
-                <Text style={styles.sheetButtonText}>Chi tiết</Text>
-              </TouchableOpacity>
+              {loadingDetail ? (
+                <View style={styles.detailLoading}>
+                  <Text style={styles.detailLoadingText}>Đang tải thông tin...</Text>
+                </View>
+              ) : reportDetail ? (
+                <>
+                  {/* Description */}
+                  {reportDetail.mo_ta && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Mô tả</Text>
+                      <Text style={styles.detailText} numberOfLines={3}>
+                        {reportDetail.mo_ta}
+                      </Text>
+                    </View>
+                  )}
 
-              <TouchableOpacity style={styles.sheetButton}>
-                <Icon name="directions" size={ICON_SIZE.md} color={theme.colors.primary} />
-                <Text style={styles.sheetButtonText}>Chỉ đường</Text>
-              </TouchableOpacity>
+                  {/* Address & Time */}
+                  <View style={styles.detailSection}>
+                    <View style={styles.detailRow}>
+                      <Icon name="map-marker" size={16} color={theme.colors.textSecondary} />
+                      <Text style={styles.detailTextSmall} numberOfLines={1}>
+                        {reportDetail.dia_chi}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Icon name="clock-outline" size={16} color={theme.colors.textSecondary} />
+                      <Text style={styles.detailTextSmall}>
+                        {new Date(reportDetail.created_at).toLocaleDateString('vi-VN', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                    </View>
+                  </View>
 
-              <TouchableOpacity style={styles.sheetButton}>
-                <Icon name="share-variant-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
-                <Text style={styles.sheetButtonText}>Chia sẻ</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+                  {/* Stats */}
+                  <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                      <Icon name="thumb-up-outline" size={18} color={theme.colors.success} />
+                      <Text style={styles.statText}>{reportDetail.luot_ung_ho}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Icon name="thumb-down-outline" size={18} color={theme.colors.error} />
+                      <Text style={styles.statText}>{reportDetail.luot_khong_ung_ho || 0}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Icon name="eye-outline" size={18} color={theme.colors.textSecondary} />
+                      <Text style={styles.statText}>{reportDetail.luot_xem}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Icon name="comment-outline" size={18} color={theme.colors.textSecondary} />
+                      <Text style={styles.statText}>{reportDetail.comments?.length || 0}</Text>
+                    </View>
+                  </View>
+
+                  {/* Comments */}
+                  {reportDetail.comments && reportDetail.comments.length > 0 && (
+                    <View style={styles.commentsSection}>
+                      <Text style={styles.commentsTitle}>
+                        Bình luận ({reportDetail.comments.length})
+                      </Text>
+                      {reportDetail.comments.slice(0, 3).map((comment) => (
+                        <View key={comment.id} style={styles.commentItem}>
+                          <View style={styles.commentHeader}>
+                            <View style={styles.commentAvatar}>
+                              <Text style={styles.commentAvatarText}>
+                                {comment.user.ho_ten.charAt(0)}
+                              </Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.commentUser}>{comment.user.ho_ten}</Text>
+                              <Text style={styles.commentTime}>
+                                {new Date(comment.created_at || comment.ngay_tao || '').toLocaleDateString('vi-VN')}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.commentText} numberOfLines={2}>
+                            {comment.noi_dung}
+                          </Text>
+                        </View>
+                      ))}
+                      {reportDetail.comments.length > 3 && (
+                        <Text style={styles.moreComments}>
+                          +{reportDetail.comments.length - 3} bình luận khác
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </>
+              ) : null}
+
+              {/* Action Buttons */}
+              <View style={styles.sheetActions}>
+                <TouchableOpacity
+                  style={styles.sheetButton}
+                  onPress={() => {
+                    // Navigate to detail screen
+                    handleCloseSheet();
+                  }}
+                >
+                  <Icon name="information-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
+                  <Text style={styles.sheetButtonText}>Xem chi tiết</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.sheetButton}>
+                  <Icon name="share-variant-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
+                  <Text style={styles.sheetButtonText}>Chia sẻ</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </>
       )}
     </View>
   );
@@ -487,6 +690,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
   },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 100,
+  },
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
@@ -499,6 +707,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SCREEN_PADDING.horizontal,
     paddingBottom: Platform.select({ ios: SPACING['2xl'], android: SPACING.xl }),
     ...theme.shadows.xl,
+    zIndex: 101, // Above backdrop
   },
   sheetHandle: {
     width: 40,
@@ -561,6 +770,115 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     color: theme.colors.primary,
     fontWeight: '600',
+  },
+  sheetScroll: {
+    maxHeight: hp('50%'),
+  },
+  sheetScrollContent: {
+    paddingBottom: SPACING.md,
+    gap: SPACING.md,
+  },
+  detailLoading: {
+    paddingVertical: SPACING.xl,
+    alignItems: 'center',
+  },
+  detailLoadingText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
+  },
+  detailSection: {
+    gap: SPACING.xs,
+  },
+  detailLabel: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  detailText: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.text,
+    lineHeight: 22,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailTextSmall: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  commentsSection: {
+    gap: SPACING.sm,
+  },
+  commentsTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  commentItem: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    gap: SPACING.xs,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  commentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentAvatarText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  commentUser: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  commentTime: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.textSecondary,
+  },
+  commentText: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.text,
+    lineHeight: 20,
+  },
+  moreComments: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: SPACING.xs,
   },
 });
 
