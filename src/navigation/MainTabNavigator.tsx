@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme, TAB_BAR } from '../theme';
 import { RootStackParamList, MainTabParamList } from './types';
+import CustomTabBar from '../components/navigation/CustomTabBar';
 
 // Auth flow screens
 import LoadingScreen from '../screens/auth/LoadingScreen';
@@ -92,37 +93,13 @@ const MainTabs = () => {
     headerShown: false,
     tabBarActiveTintColor: theme.colors.primary,
     tabBarInactiveTintColor: theme.colors.textSecondary,
-    tabBarStyle: {
-      backgroundColor: theme.colors.white,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.borderLight,
-      paddingBottom: TAB_BAR.paddingBottom,
-      paddingTop: 8,
-      height: TAB_BAR.height,
-      ...Platform.select({
-        ios: {
-          shadowColor: theme.colors.black,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        android: {
-          elevation: 8,
-        },
-      }),
-    },
-    tabBarLabelStyle: {
-      fontSize: TAB_BAR.fontSize,
-      fontWeight: theme.typography.fontWeight.semibold,
-      marginTop: 4,
-    },
-    tabBarIconStyle: {
-      marginTop: 4,
-    },
   };
 
   return (
-    <MainTab.Navigator screenOptions={tabScreenOptions}>
+    <MainTab.Navigator
+      screenOptions={tabScreenOptions}
+      tabBar={(props) => <CustomTabBar {...props} />}
+    >
       <MainTab.Screen
         name="Home"
         component={HomeScreen}
@@ -139,20 +116,22 @@ const MainTabs = () => {
           tabBarIcon: ({ color }) => <Icon name="map-marker-outline" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
+      {/* Center button - placeholder tab (handled by CustomTabBar) */}
+      <MainTab.Screen
+        name="CreateReport"
+        component={CreateReportScreen}
+        options={{
+          // title: 'Tạo',
+          tabBarIcon: ({ color }) => <Icon name="plus" size={TAB_BAR.iconSize} color={color} />,
+          tabBarButton: () => null, // Hide default tab button
+        }}
+      />
       <MainTab.Screen
         name="Wallet"
         component={WalletScreen}
         options={{
           title: 'Ví điểm',
           tabBarIcon: ({ color }) => <Icon name="wallet-outline" size={TAB_BAR.iconSize} color={color} />,
-        }}
-      />
-      <MainTab.Screen
-        name="Reports"
-        component={ReportsScreen}
-        options={{
-          title: 'Phản ánh',
-          tabBarIcon: ({ color }) => <Icon name="alert-circle-outline" size={TAB_BAR.iconSize} color={color} />,
         }}
       />
       <MainTab.Screen
@@ -204,7 +183,7 @@ const MainNavigator = () => {
         <Stack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />
 
         {/* Reports Module */}
-        <Stack.Screen name="ReportList" component={ReportListScreen} />
+        <Stack.Screen name="Reports" component={ReportsScreen} />
         <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
         <Stack.Screen name="CreateReport" component={CreateReportScreen} />
         <Stack.Screen name="EditReport" component={EditReportScreen} />

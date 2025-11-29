@@ -129,10 +129,10 @@ const HomeScreen = () => {
     {
       id: 'create-report',
       title: 'Báo cáo',
-      subtitle: 'Gửi phản ánh mới',
-      icon: 'plus-box-outline',
+      subtitle: 'Danh sách báo cáo',
+      icon: 'file-document-outline',
       color: theme.colors.primary,
-      onPress: () => navigation.navigate('CreateReport'),
+      onPress: () => navigation.navigate('Reports'),
     },
     {
       id: 'my-reports',
@@ -490,7 +490,7 @@ const HomeScreen = () => {
                       </View>
                     </View>
                     <View style={styles.categoryRight}>
-                      <Text style={styles.categoryCount}>{category.total}</Text>
+                      {/* <Text style={styles.categoryCount}>{category.total}</Text> */}
                       <Text style={styles.categoryPercentage}>{percentage}%</Text>
                     </View>
                   </View>

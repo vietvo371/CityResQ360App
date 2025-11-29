@@ -4,9 +4,9 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 export type MainTabParamList = {
   Home: undefined;
   Map: undefined;
-  Reports: undefined;
   Wallet: undefined;
   Profile: undefined;
+  CreateReport: undefined;
 };
 
 export type RootStackParamList = {
@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
+  Reports: undefined;
   ForgotPassword: undefined;
   OTPVerification: {
     identifier: string;

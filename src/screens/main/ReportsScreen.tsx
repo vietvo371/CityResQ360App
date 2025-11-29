@@ -148,6 +148,12 @@ const ReportsScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+      <PageHeader
+        title=''
+        variant="default"
+        rightIcon="plus-circle"
+        onRightPress={() => navigation.navigate('CreateReport')}
+      />
 
       {/* Header Search Bar */}
       <View style={styles.headerContainer}>
@@ -200,12 +206,12 @@ const ReportsScreen = () => {
       )}
 
       {/* FAB */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('CreateReport')}
       >
         <Icon name="plus" size={28} color={theme.colors.white} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </SafeAreaView>
   );
 };

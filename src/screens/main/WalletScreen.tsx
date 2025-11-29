@@ -15,19 +15,22 @@ import {
 } from '../../theme';
 import PageHeader from '../../component/PageHeader';
 import { walletService } from '../../services/walletService';
-import { WalletInfo, Transaction } from '../../types/api/wallet';
+import { WalletInfo, Transaction, Reward } from '../../types/api/wallet';
 
 const WalletScreen = () => {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
 
   const fetchData = useCallback(async () => {
     try {
-      const [infoRes, transRes] = await Promise.all([
+      const [infoRes, transRes, rewardsRes] = await Promise.all([
         walletService.getWalletInfo(),
-        walletService.getTransactions({ per_page: 5 })
+        walletService.getTransactions({ per_page: 10 }),
+        walletService.getRewards(1)
       ]);
 
       if (infoRes.success) {
@@ -35,6 +38,9 @@ const WalletScreen = () => {
       }
       if (transRes.success) {
         setTransactions(transRes.data);
+      }
+      if (rewardsRes.success) {
+        setRewards(rewardsRes.data);
       }
     } catch (error) {
       console.error('Error fetching wallet data:', error);
@@ -52,13 +58,6 @@ const WalletScreen = () => {
     setRefreshing(true);
     fetchData();
   };
-
-  const quickActions = [
-    { id: 'redeem', icon: 'gift-outline', label: 'Đổi quà', color: theme.colors.primary },
-    { id: 'history', icon: 'history', label: 'Lịch sử', color: theme.colors.info },
-    { id: 'donate', icon: 'hand-heart-outline', label: 'Quyên góp', color: theme.colors.error },
-    { id: 'scan', icon: 'qrcode-scan', label: 'Quét mã', color: theme.colors.success },
-  ];
 
   const formatPoints = (points: number) => {
     return points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -149,52 +148,99 @@ const WalletScreen = () => {
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.actionsGrid}>
-          {quickActions.map((action) => (
-            <TouchableOpacity key={action.id} style={styles.actionItem}>
-              <View style={[styles.actionIcon, { backgroundColor: action.color + '15' }]}>
-                <Icon name={action.icon} size={ICON_SIZE.lg} color={action.color} />
-              </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Tab Selector */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'rewards' && styles.tabActive]}
+            onPress={() => setActiveTab('rewards')}
+          >
+            <Icon
+              name="gift-outline"
+              size={ICON_SIZE.md}
+              color={activeTab === 'rewards' ? theme.colors.primary : theme.colors.textSecondary}
+            />
+            <Text style={[styles.tabLabel, activeTab === 'rewards' && styles.tabLabelActive]}>
+              Đổi quà
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+            onPress={() => setActiveTab('history')}
+          >
+            <Icon
+              name="history"
+              size={ICON_SIZE.md}
+              color={activeTab === 'history' ? theme.colors.primary : theme.colors.textSecondary}
+            />
+            <Text style={[styles.tabLabel, activeTab === 'history' && styles.tabLabelActive]}>
+              Lịch sử
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Transactions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
-          {loading && !refreshing ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          ) : transactions.length > 0 ? (
-            transactions.map((item) => (
-              <View key={item.id} style={styles.transactionItem}>
-                <View style={[styles.transIcon, {
-                  backgroundColor: item.loai_giao_dich === 0 ? theme.colors.success + '15' : theme.colors.textSecondary + '15'
-                }]}>
-                  <Icon
-                    name={item.loai_giao_dich === 0 ? 'arrow-down-left' : 'arrow-up-right'}
-                    size={ICON_SIZE.md}
-                    color={item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.textSecondary}
-                  />
+        {/* Tab Content */}
+        {activeTab === 'rewards' ? (
+          // Rewards Tab
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Phần thưởng có thể đổi</Text>
+            {loading && !refreshing ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : rewards.length > 0 ? (
+              rewards.map((reward) => (
+                <View key={reward.id} style={styles.rewardItem}>
+                  <View style={styles.rewardIcon}>
+                    <Icon name="gift" size={ICON_SIZE.lg} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.rewardInfo}>
+                    <Text style={styles.rewardTitle}>{reward.ten_phan_thuong}</Text>
+                    <Text style={styles.rewardPoints}>{reward.so_diem_can} điểm</Text>
+                  </View>
+                  <TouchableOpacity style={styles.redeemButton}>
+                    <Text style={styles.redeemButtonText}>Đổi</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.transInfo}>
-                  <Text style={styles.transTitle}>{item.loai_giao_dich_text}</Text>
-                  <Text style={styles.transDate}>
-                    {new Date(item.ngay_tao).toLocaleDateString('vi-VN')}
+              ))
+            ) : (
+              <Text style={styles.emptyText}>Chưa có phần thưởng nào</Text>
+            )}
+          </View>
+        ) : (
+          // History Tab
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Lịch sử giao dịch</Text>
+            {loading && !refreshing ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : transactions.length > 0 ? (
+              transactions.map((item) => (
+                <View key={item.id} style={styles.transactionItem}>
+                  <View style={[styles.transIcon, {
+                    backgroundColor: item.loai_giao_dich === 0 ? theme.colors.success + '15' : theme.colors.textSecondary + '15'
+                  }]}>
+                    <Icon
+                      name={item.loai_giao_dich === 0 ? 'arrow-down-left' : 'arrow-up-right'}
+                      size={ICON_SIZE.md}
+                      color={item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.transInfo}>
+                    <Text style={styles.transTitle}>{item.loai_giao_dich_text}</Text>
+                    <Text style={styles.transDate}>
+                      {new Date(item.ngay_tao).toLocaleDateString('vi-VN')}
+                    </Text>
+                  </View>
+                  <Text style={[styles.transAmount, {
+                    color: item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.text
+                  }]}>
+                    {item.loai_giao_dich === 0 ? '+' : '-'}{item.so_diem}
                   </Text>
                 </View>
-                <Text style={[styles.transAmount, {
-                  color: item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.text
-                }]}>
-                  {item.loai_giao_dich === 0 ? '+' : '-'}{item.so_diem}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
-          )}
-        </View>
+              ))
+            ) : (
+              <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -322,47 +368,124 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '600',
   },
-  actionsGrid: {
+  // Tab Selector
+  tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: '#F5F7FA', // Light gray background for the track
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: 4,
     marginBottom: SPACING.xl,
+    marginHorizontal: SPACING.xs, // Add some margin from screen edges if needed, or keep 0
   },
-  actionItem: {
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    justifyContent: 'center',
+    paddingVertical: 12, // Taller touch area
+    paddingHorizontal: SPACING.sm,
+    borderRadius: BORDER_RADIUS.xl,
+    gap: 6,
   },
-  actionIcon: {
-    width: wp('14%'),
-    height: wp('14%'),
-    borderRadius: wp('5%'),
+  tabActive: {
+    backgroundColor: theme.colors.white,
+    ...theme.shadows.sm, // Add shadow to active tab for "floating" effect
+    shadowOpacity: 0.1,
+  },
+  tabLabel: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  tabLabelActive: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  // Rewards
+  rewardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    ...theme.shadows.sm,
+    shadowColor: theme.colors.primary, // Subtle colored shadow
+    shadowOpacity: 0.05,
+  },
+  rewardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 20, // Squircle shape
+    backgroundColor: '#F0F7FF', // Very light primary
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: SPACING.md,
   },
-  actionLabel: {
-    fontSize: FONT_SIZE.sm,
+  rewardInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  rewardTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
     color: theme.colors.text,
-    fontWeight: '500',
+    marginBottom: 4,
+  },
+  rewardPoints: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.primary,
+    fontWeight: '700',
+    backgroundColor: '#F0F7FF',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  redeemButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.lg,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  redeemButtonText: {
+    color: theme.colors.white,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
   },
   section: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   sectionTitle: {
     fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    fontWeight: '800', // Bolder title
     color: theme.colors.text,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
+    marginLeft: SPACING.xs,
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 16,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: theme.colors.white,
+    borderRadius: BORDER_RADIUS.lg,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: '#F5F7FA',
   },
   transIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -374,7 +497,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
     color: theme.colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   transDate: {
     fontSize: FONT_SIZE.xs,
@@ -388,7 +511,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginTop: SPACING.md,
+    marginTop: SPACING.xl,
+    fontStyle: 'italic',
   },
   reputationBadge: {
     flexDirection: 'row',

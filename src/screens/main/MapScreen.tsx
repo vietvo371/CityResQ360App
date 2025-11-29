@@ -362,13 +362,13 @@ const MapScreen = () => {
           <Icon name="crosshairs-gps" size={ICON_SIZE.lg} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.fabButton, styles.reportButton]}
           activeOpacity={0.8}
         >
           <Icon name="plus" size={ICON_SIZE.lg} color={theme.colors.white} />
           <Text style={styles.reportButtonText}>Báo cáo</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Report Detail Bottom Sheet */}

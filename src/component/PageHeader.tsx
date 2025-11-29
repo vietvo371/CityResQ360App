@@ -155,7 +155,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           rightComponent
         ) : rightIcon ? (
           <TouchableOpacity onPress={onRightPress} style={styles.rightButton}>
-            <Icon name={rightIcon} size={ICON_SIZE.md} color={theme.colors.text} />
+            <Icon name={rightIcon} size={ICON_SIZE['xl']} color={theme.colors.primary} />
           </TouchableOpacity>
         ) : (
           <View style={styles.placeholderRight} />
