@@ -16,7 +16,7 @@ import {
   textStyles
 } from '../../theme';
 import env from '../../config/env';
-
+import { useNavigation } from '@react-navigation/native';
 // Initialize MapTiler (Open Source Map Provider)
 // MapTiler is API-compatible with Mapbox but supports open source projects
 MapboxGL.setAccessToken(env.MAPTILER_API_KEY);
@@ -39,6 +39,7 @@ const MapScreen = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const cameraRef = useRef<MapboxGL.Camera>(null);
   const mapRef = useRef<MapboxGL.MapView>(null);
+  const navigation = useNavigation();
 
   // Animation values
   const slideAnim = useRef(new Animated.Value(500)).current; // Start off-screen
@@ -246,10 +247,9 @@ const MapScreen = () => {
       <MapboxGL.MapView
         ref={mapRef}
         style={styles.map}
-        styleURL={`https://api.maptiler.com/maps/streets-v2/style.json?key=${env.MAPTILER_API_KEY}`}
+        styleURL={`https://api.maptiler.com/maps/019addc6-a6f6-7cd5-9fe2-83ad43280ca0/style.json?key=${env.MAPTILER_API_KEY}`}
         logoEnabled={false}
         attributionEnabled={false}
-        onRegionDidChange={fetchMapReports}
         onDidFinishLoadingMap={() => {
           console.log('Map finished loading');
           setMapLoaded(true);
@@ -270,28 +270,101 @@ const MapScreen = () => {
           minDisplacement={10}
         />
 
-        {mapReports.map((report) => (
-          <MapboxGL.PointAnnotation
-            key={report.id.toString()}
-            id={`report-${report.id}`}
-            coordinate={[report.kinh_do, report.vi_do]}
-            onSelected={() => handleMarkerSelect(report)}
-          >
-            <View style={styles.markerContainer}>
-              <View style={[styles.marker, { backgroundColor: report.marker_color || theme.colors.primary }]}>
-                <Icon
-                  name={getCategoryIcon(report.danh_muc)}
-                  size={16}
-                  color={theme.colors.white}
-                />
-              </View>
-              {/* Priority indicator */}
-              {report.uu_tien >= 2 && (
-                <View style={[styles.markerDot, { backgroundColor: report.uu_tien === 3 ? theme.colors.error : theme.colors.warning }]} />
-              )}
-            </View>
-          </MapboxGL.PointAnnotation>
-        ))}
+        <MapboxGL.Images
+          images={{
+            'traffic': require('../../assets/images/map_icons/traffic.png'),
+            'environment': require('../../assets/images/map_icons/environment.png'),
+            'fire': require('../../assets/images/map_icons/fire.png'),
+            'trash': require('../../assets/images/map_icons/trash.png'),
+            'flood': require('../../assets/images/map_icons/flood.png'),
+            'default': require('../../assets/images/map_icons/default.png'),
+          }}
+        />
+        <MapboxGL.ShapeSource
+          id="reportsSource"
+          cluster={true}
+          clusterRadius={50}
+          clusterMaxZoomLevel={14}
+          shape={{
+            type: 'FeatureCollection',
+            features: mapReports.map(report => ({
+              type: 'Feature',
+              id: report.id.toString(),
+              geometry: {
+                type: 'Point',
+                coordinates: [report.kinh_do, report.vi_do],
+              },
+              properties: report,
+            })),
+          }}
+          onPress={(event) => {
+            const feature = event.features[0];
+            if (feature && feature.properties) {
+              if (feature.properties.cluster) {
+                // Handle cluster press - zoom in
+                if (cameraRef.current) {
+                  const geometry = feature.geometry as any; // Cast to any or specific Point type if available
+                  const center = geometry.coordinates;
+                  cameraRef.current.setCamera({
+                    centerCoordinate: center,
+                    zoomLevel: 16, // Zoom in to separate
+                    animationDuration: 500,
+                  });
+                }
+              } else {
+                // Handle individual marker press
+                handleMarkerSelect(feature.properties as MapReport);
+              }
+            }
+          }}
+        >
+          {/* Clusters */}
+          <MapboxGL.SymbolLayer
+            id="pointCount"
+            style={{
+              textField: ['get', 'point_count'],
+              textSize: 12,
+              textColor: '#ffffff',
+              textIgnorePlacement: false,
+              textAllowOverlap: false,
+            }}
+          />
+
+          <MapboxGL.CircleLayer
+            id="clusteredPoints"
+            belowLayerID="pointCount"
+            filter={['has', 'point_count']}
+            style={{
+              circlePitchAlignment: 'map',
+              circleColor: theme.colors.primary,
+              circleRadius: 20,
+              circleOpacity: 0.7,
+              circleStrokeWidth: 2,
+              circleStrokeColor: 'white',
+            }}
+          />
+
+          {/* Individual Markers */}
+          <MapboxGL.SymbolLayer
+            id="reportsLayer"
+            filter={['!', ['has', 'point_count']]}
+            style={{
+              iconImage: [
+                'match',
+                ['get', 'danh_muc'],
+                0, 'traffic',       // Giao thông
+                1, 'environment',   // Môi trường
+                2, 'fire',          // Cháy nổ
+                3, 'trash',         // Rác thải
+                4, 'flood',         // Ngập lụt
+                'default'           // Default
+              ],
+              iconSize: 0.08,
+              iconAllowOverlap: true,
+              iconAnchor: 'bottom',
+            }}
+          />
+        </MapboxGL.ShapeSource>
       </MapboxGL.MapView>
 
       {/* Loading Indicator */}
@@ -314,7 +387,10 @@ const MapScreen = () => {
               placeholder="Tìm kiếm địa điểm, sự cố..."
               placeholderTextColor={theme.colors.textSecondary}
             />
-            <TouchableOpacity>
+            <TouchableOpacity onPress={fetchMapReports} style={styles.iconButton}>
+              <Icon name="refresh" size={ICON_SIZE.md} color={theme.colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
               <Icon name="tune-variant" size={ICON_SIZE.md} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
@@ -538,6 +614,7 @@ const MapScreen = () => {
                   onPress={() => {
                     // Navigate to detail screen
                     handleCloseSheet();
+                    navigation.navigate('ReportDetail', { id: selectedReport.id, reportId: selectedReport.id });
                   }}
                 >
                   <Icon name="information-outline" size={ICON_SIZE.md} color={theme.colors.primary} />
@@ -592,6 +669,10 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     height: '100%',
   },
+  iconButton: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.xs,
+  },
   filterContainer: {
     height: 40,
   },
@@ -620,30 +701,7 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: theme.colors.white,
   },
-  markerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  marker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.white,
-    ...theme.shadows.sm,
-  },
-  markerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: theme.colors.white,
-    position: 'absolute',
-    top: -2,
-    right: -2,
-  },
+
   fabContainer: {
     position: 'absolute',
     bottom: Platform.select({ ios: hp('12%'), android: hp('10%') }), // Adjust for tab bar

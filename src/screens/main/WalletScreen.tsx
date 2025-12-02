@@ -32,6 +32,9 @@ const WalletScreen = () => {
         walletService.getTransactions({ per_page: 10 }),
         walletService.getRewards(1)
       ]);
+      console.log('infoRes', infoRes);
+      console.log('transRes', transRes);
+      console.log('rewardsRes', rewardsRes);
 
       if (infoRes.success) {
         setWalletInfo(infoRes.data);
@@ -232,7 +235,7 @@ const WalletScreen = () => {
                   <Text style={[styles.transAmount, {
                     color: item.loai_giao_dich === 0 ? theme.colors.success : theme.colors.text
                   }]}>
-                    {item.loai_giao_dich === 0 ? '+' : '-'}{item.so_diem}
+                    {item.loai_giao_dich === 0 ? '+' : ''}{item.so_diem}
                   </Text>
                 </View>
               ))

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, ActivityIndicator, FlatList, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, StatusBar, RefreshControl, ActivityIndicator, FlatList, Modal, Animated, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -359,37 +359,40 @@ const ProfileScreen = () => {
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
-        <View style={styles.header}>
-          <View style={styles.profileInfo}>
-            <View style={styles.avatarContainer}>
-              {user?.anh_dai_dien ? (
-                <Image source={{ uri: user.anh_dai_dien }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>
-                    {user?.ho_ten?.charAt(0) || 'U'}
-                  </Text>
+        <View style={styles.headerContainer}>
+          {/* Colored Background */}
+          <View style={styles.headerBackground}>
+            {/* Settings Button */}
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setShowMenuModal(true)}
+            >
+              <Icon name="cog-outline" size={24} color={theme.colors.white} />
+            </TouchableOpacity>
+
+            <View style={styles.profileContent}>
+              <View style={styles.avatarWrapper}>
+                {user?.anh_dai_dien ? (
+                  <Image source={{ uri: user.anh_dai_dien }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Text style={styles.avatarText}>
+                      {user?.ho_ten?.charAt(0) || 'U'}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.verifiedBadge}>
+                  <Icon name="check-decagram" size={16} color={theme.colors.primary} />
                 </View>
-              )}
-              <View style={styles.verifiedBadge}>
-                <Icon name="check-decagram" size={16} color={theme.colors.primary} />
               </View>
-            </View>
-            <View style={styles.userInfo}>
+
               <Text style={styles.userName}>{user?.ho_ten || 'Người dùng'}</Text>
               <Text style={styles.userRole}>Cư dân TP.HCM</Text>
             </View>
-
-            {/* Hamburger Menu Button */}
-            <TouchableOpacity
-              style={styles.hamburgerButton}
-              onPress={() => setShowMenuModal(true)}
-            >
-              <Icon name="menu" size={28} color={theme.colors.text} />
-            </TouchableOpacity>
           </View>
 
-          <View style={styles.statsContainer}>
+          {/* Floating Stats Card */}
+          <View style={styles.statsCard}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{user?.tong_so_phan_anh || 0}</Text>
               <Text style={styles.statLabel}>Báo cáo</Text>
@@ -576,40 +579,55 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
   },
-  header: {
-    backgroundColor: theme.colors.white,
-    padding: SCREEN_PADDING.horizontal,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.lg,
-    marginBottom: SPACING.md,
+  headerContainer: {
+    marginBottom: SPACING.lg,
   },
-  hamburgerButton: {
-    padding: SPACING.xs,
-  },
-  profileInfo: {
-    flexDirection: 'row',
+  headerBackground: {
+    backgroundColor: theme.colors.primary,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingBottom: SPACING['3xl'] + SPACING.lg, // Extra padding for floating card overlap
+    paddingHorizontal: SCREEN_PADDING.horizontal,
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    borderBottomLeftRadius: BORDER_RADIUS['2xl'],
+    borderBottomRightRadius: BORDER_RADIUS['2xl'],
   },
-  avatarContainer: {
+  settingsButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + SPACING.md : SPACING.xl,
+    right: SCREEN_PADDING.horizontal,
+    padding: SPACING.xs,
+    zIndex: 10,
+  },
+  profileContent: {
+    alignItems: 'center',
+    marginTop: SPACING.xl,
+  },
+  avatarWrapper: {
     position: 'relative',
-    marginRight: SPACING.md,
+    marginBottom: SPACING.sm,
+    padding: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: wp('12%'),
   },
   avatar: {
-    width: wp('18%'),
-    height: wp('18%'),
-    borderRadius: wp('9%'),
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    borderWidth: 2,
+    borderColor: theme.colors.white,
   },
   avatarPlaceholder: {
-    width: wp('18%'),
-    height: wp('18%'),
-    borderRadius: wp('9%'),
-    backgroundColor: theme.colors.primary + '20',
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    backgroundColor: theme.colors.white,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.white,
   },
   avatarText: {
-    fontSize: FONT_SIZE['2xl'],
+    fontSize: FONT_SIZE['3xl'],
     fontWeight: '700',
     color: theme.colors.primary,
   },
@@ -618,46 +636,56 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     backgroundColor: theme.colors.white,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 2,
-  },
-  userInfo: {
-    flex: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   userName: {
-    fontSize: FONT_SIZE.xl,
+    fontSize: FONT_SIZE['2xl'],
     fontWeight: '700',
-    color: theme.colors.text,
+    color: theme.colors.white,
     marginBottom: 4,
   },
   userRole: {
     fontSize: FONT_SIZE.sm,
-    color: theme.colors.textSecondary,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '500',
   },
-  statsContainer: {
+  statsCard: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+    backgroundColor: theme.colors.white,
+    borderRadius: BORDER_RADIUS.xl,
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    marginHorizontal: SCREEN_PADDING.horizontal,
+    marginTop: -SPACING['3xl'], // Negative margin to overlap
+    ...theme.shadows.md,
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
   },
   statValue: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.xl,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: 2,
+    color: theme.colors.primary,
+    marginBottom: 4,
   },
   statLabel: {
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
+    fontWeight: '500',
   },
   divider: {
     width: 1,
-    height: '100%',
+    height: '80%',
     backgroundColor: theme.colors.borderLight,
+    alignSelf: 'center',
   },
   reportsHeader: {
     flexDirection: 'row',
@@ -665,8 +693,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SCREEN_PADDING.horizontal,
     paddingVertical: SPACING.md,
-    backgroundColor: theme.colors.white,
-    marginBottom: SPACING.sm,
+    backgroundColor: theme.colors.background,
+    marginBottom: SPACING.xs,
   },
   reportsTitle: {
     fontSize: FONT_SIZE.lg,
