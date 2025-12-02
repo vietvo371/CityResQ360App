@@ -20,10 +20,9 @@ export const walletService = {
         return response.data;
     },
 
-    redeemReward: async (rewardId: number, quantity: number = 1): Promise<ApiResponse<RedeemResponse>> => {
+    redeemReward: async (rewardId: number): Promise<ApiResponse<RedeemResponse>> => {
         const response = await api.post<ApiResponse<RedeemResponse>>('/wallet/redeem', {
-            reward_id: rewardId,
-            quantity: quantity
+            phan_thuong_id: rewardId
         });
         return response.data;
     }

@@ -14,6 +14,7 @@ import {
   hp,
 } from '../../theme';
 import PageHeader from '../../component/PageHeader';
+import ModalCustom from '../../component/ModalCustom';
 import { walletService } from '../../services/walletService';
 import { WalletInfo, Transaction, Reward } from '../../types/api/wallet';
 
@@ -24,6 +25,16 @@ const WalletScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
+  const [redeemingId, setRedeemingId] = useState<number | null>(null);
+
+  // Modal states
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [redeemResult, setRedeemResult] = useState<{ voucher_code: string; so_du_moi: number } | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -64,6 +75,43 @@ const WalletScreen = () => {
 
   const formatPoints = (points: number) => {
     return points.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const handleRedeemReward = async (reward: Reward) => {
+    // Kiểm tra điểm
+    if (!walletInfo || walletInfo.diem_thanh_pho < reward.so_diem_can) {
+      setSelectedReward(reward);
+      setShowInsufficientModal(true);
+      return;
+    }
+
+    // Hiển thị modal xác nhận
+    setSelectedReward(reward);
+    setShowConfirmModal(true);
+  };
+
+  const executeRedeem = async () => {
+    if (!selectedReward) return;
+
+    setRedeemingId(selectedReward.id);
+    try {
+      const response = await walletService.redeemReward(selectedReward.id);
+
+      if (response.success) {
+        setRedeemResult(response.data);
+        setShowSuccessModal(true);
+        fetchData(); // Refresh data
+      } else {
+        setErrorMessage(response.message || 'Có lỗi xảy ra, vui lòng thử lại sau.');
+        setShowErrorModal(true);
+      }
+    } catch (error: any) {
+      console.error('Error redeeming reward:', error);
+      setErrorMessage(error?.response?.data?.message || 'Không thể đổi quà. Vui lòng thử lại sau.');
+      setShowErrorModal(true);
+    } finally {
+      setRedeemingId(null);
+    }
   };
 
   return (
@@ -197,10 +245,21 @@ const WalletScreen = () => {
                   </View>
                   <View style={styles.rewardInfo}>
                     <Text style={styles.rewardTitle}>{reward.ten_phan_thuong}</Text>
-                    <Text style={styles.rewardPoints}>{reward.so_diem_can} điểm</Text>
+                    <Text style={styles.rewardPoints}>{formatPoints(reward.so_diem_can)} điểm</Text>
                   </View>
-                  <TouchableOpacity style={styles.redeemButton}>
-                    <Text style={styles.redeemButtonText}>Đổi</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.redeemButton,
+                      (redeemingId === reward.id || (walletInfo && walletInfo.diem_thanh_pho < reward.so_diem_can)) && styles.redeemButtonDisabled
+                    ]}
+                    onPress={() => handleRedeemReward(reward)}
+                    disabled={redeemingId !== null}
+                  >
+                    {redeemingId === reward.id ? (
+                      <ActivityIndicator size="small" color={theme.colors.white} />
+                    ) : (
+                      <Text style={styles.redeemButtonText}>Đổi</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               ))
@@ -245,6 +304,76 @@ const WalletScreen = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* Modal: Không đủ điểm */}
+      <ModalCustom
+        isModalVisible={showInsufficientModal}
+        setIsModalVisible={setShowInsufficientModal}
+        title="Không đủ điểm"
+        type="warning"
+        isAction={false}
+      >
+        <Text style={styles.modalText}>
+          Bạn cần <Text style={styles.boldText}>{selectedReward ? formatPoints(selectedReward.so_diem_can) : 0} điểm</Text> để đổi phần thưởng này.
+        </Text>
+        <Text style={styles.modalText}>
+          Hiện tại bạn có <Text style={styles.boldText}>{formatPoints(walletInfo?.diem_thanh_pho || 0)} điểm</Text>.
+        </Text>
+      </ModalCustom>
+
+      {/* Modal: Xác nhận đổi quà */}
+      <ModalCustom
+        isModalVisible={showConfirmModal}
+        setIsModalVisible={setShowConfirmModal}
+        title="Xác nhận đổi quà"
+        type="confirm"
+        onPressAction={executeRedeem}
+        actionText="Đồng ý"
+        closeText="Hủy"
+      >
+        <Text style={styles.modalText}>
+          Bạn có chắc chắn muốn đổi{' '}
+          <Text style={styles.boldText}>"{selectedReward?.ten_phan_thuong}"</Text>{' '}
+          với <Text style={styles.boldText}>{selectedReward ? formatPoints(selectedReward.so_diem_can) : 0} điểm</Text>?
+        </Text>
+      </ModalCustom>
+
+      {/* Modal: Đổi quà thành công */}
+      <ModalCustom
+        isModalVisible={showSuccessModal}
+        setIsModalVisible={setShowSuccessModal}
+        title="Đổi quà thành công! 🎉"
+        type="success"
+        isClose={false}
+        actionText="OK"
+        onPressAction={() => {
+          setShowSuccessModal(false);
+          setSelectedReward(null);
+          setRedeemResult(null);
+        }}
+      >
+        <View style={styles.successContent}>
+          <View style={styles.voucherContainer}>
+            <Text style={styles.voucherLabel}>Mã voucher</Text>
+            <Text style={styles.voucherCode}>{redeemResult?.voucher_code}</Text>
+          </View>
+          <Text style={styles.modalText}>
+            Số dư còn lại: <Text style={styles.boldText}>{redeemResult ? formatPoints(redeemResult.so_du_moi) : 0} điểm</Text>
+          </Text>
+        </View>
+      </ModalCustom>
+
+      {/* Modal: Lỗi */}
+      <ModalCustom
+        isModalVisible={showErrorModal}
+        setIsModalVisible={setShowErrorModal}
+        title="Đổi quà thất bại"
+        type="error"
+        isClose={false}
+        actionText="OK"
+      >
+        <Text style={styles.modalText}>{errorMessage}</Text>
+      </ModalCustom>
     </SafeAreaView>
   );
 };
@@ -464,6 +593,10 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     fontWeight: '700',
   },
+  redeemButtonDisabled: {
+    backgroundColor: theme.colors.textSecondary,
+    opacity: 0.6,
+  },
   section: {
     marginTop: SPACING.sm,
   },
@@ -555,6 +688,41 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: theme.colors.white,
     borderRadius: 2,
+  },
+  // Modal styles
+  modalText: {
+    fontSize: FONT_SIZE.md,
+    color: theme.colors.text,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.sm,
+  },
+  boldText: {
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  successContent: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  voucherContainer: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  voucherLabel: {
+    fontSize: FONT_SIZE.sm,
+    color: theme.colors.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  voucherCode: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
 
