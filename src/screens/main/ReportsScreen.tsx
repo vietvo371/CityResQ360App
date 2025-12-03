@@ -42,7 +42,7 @@ const ReportsScreen = () => {
     const timer = setTimeout(() => {
       setFilters(prev => ({
         ...prev,
-        tu_khoa: searchQuery || undefined
+        search: searchQuery || undefined
       }));
     }, 500);
 

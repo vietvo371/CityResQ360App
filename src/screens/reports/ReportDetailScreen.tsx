@@ -65,6 +65,7 @@ const ReportDetailScreen = () => {
   const fetchReportDetail = useCallback(async () => {
     try {
       const response = await reportService.getReportDetail(id);
+      console.log('Report detail response:', response);
       if (response.success) {
         setReport(response.data);
       }

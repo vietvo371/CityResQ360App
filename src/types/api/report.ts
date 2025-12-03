@@ -115,10 +115,10 @@ export interface CreateReportRequest {
 export interface ReportFilterParams {
     page?: number;
     per_page?: number;
-    danh_muc?: number;
+    danh_muc_id?: number;
     trang_thai?: number;
-    uu_tien?: number;
+    uu_tien_id?: number;
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
-    tu_khoa?: string;
+    search?: string;
 }

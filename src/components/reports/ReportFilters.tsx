@@ -4,11 +4,12 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme, SPACING, FONT_SIZE, BORDER_RADIUS, ICON_SIZE } from '../../theme';
 
 export interface FilterOptions {
-    danh_muc?: number;
+    danh_muc_id?: number;
     trang_thai?: number;
-    uu_tien?: number;
+    uu_tien_id?: number;
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
+    search?: string;
 }
 
 export interface ReportFilterModalProps {
@@ -129,23 +130,23 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({ visible, o
                                         key={category.value}
                                         style={[
                                             styles.option,
-                                            tempFilters.danh_muc === category.value && styles.optionActive
+                                            tempFilters.danh_muc_id === category.value && styles.optionActive
                                         ]}
                                         onPress={() => setTempFilters({
                                             ...tempFilters,
-                                            danh_muc: category.value === -1 ? undefined : category.value
+                                            danh_muc_id: category.value === -1 ? undefined : category.value
                                         })}
                                     >
                                         {category.icon && (
                                             <Icon
                                                 name={category.icon}
                                                 size={20}
-                                                color={tempFilters.danh_muc === category.value ? theme.colors.white : category.color}
+                                                color={tempFilters.danh_muc_id === category.value ? theme.colors.white : category.color}
                                             />
                                         )}
                                         <Text style={[
                                             styles.optionText,
-                                            tempFilters.danh_muc === category.value && styles.optionTextActive
+                                            tempFilters.danh_muc_id === category.value && styles.optionTextActive
                                         ]}>
                                             {category.label}
                                         </Text>
@@ -190,16 +191,16 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({ visible, o
                                         key={priority.value}
                                         style={[
                                             styles.option,
-                                            tempFilters.uu_tien === priority.value && styles.optionActive
+                                            tempFilters.uu_tien_id === priority.value && styles.optionActive
                                         ]}
                                         onPress={() => setTempFilters({
                                             ...tempFilters,
-                                            uu_tien: priority.value === -1 ? undefined : priority.value
+                                            uu_tien_id: priority.value === -1 ? undefined : priority.value
                                         })}
                                     >
                                         <Text style={[
                                             styles.optionText,
-                                            tempFilters.uu_tien === priority.value && styles.optionTextActive
+                                            tempFilters.uu_tien_id === priority.value && styles.optionTextActive
                                         ]}>
                                             {priority.label}
                                         </Text>

@@ -1,0 +1,2877 @@
+{
+    "info": {
+        "_postman_id": "api-mnm-2025-1",
+        "name": "API_MNM_2025_1",
+        "description": "**CityResQ360 API Collection - Phiên bản 1.0**\n\nTài liệu chi tiết API cho ứng dụng CityResQ360.\nBao gồm đầy đủ mô tả Tiếng Việt cho các Endpoints và Tham số.\n\n**Tài liệu tham khảo:** Xem file `docs/API_DOCUMENTATION.md` trong source code.\n\n**Authentication:** Sử dụng Bearer Token (Laravel Sanctum).\n",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication (Public)",
+            "item": [
+                {
+                    "name": "Register",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.token) {",
+                                    "        pm.collectionVariables.set('auth_token', jsonData.data.token);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ho_ten\": \"Nguyễn Văn A\",\n  \"email\": \"nguyenvana@example.com\",\n  \"so_dien_thoai\": \"0901234567\",\n  \"mat_khau\": \"password123\",\n  \"mat_khau_confirmation\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Đăng ký tài khoản người dùng mới.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `email` | Địa chỉ email của người dùng |\n| `mat_khau` | Mật khẩu đăng nhập |\n| `mat_khau_confirmation` | Nhập lại mật khẩu để xác nhận |\n| `ho_ten` | Họ và tên đầy đủ |\n| `so_dien_thoai` | Số điện thoại liên lạc |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.token) {",
+                                    "        pm.collectionVariables.set('auth_token', jsonData.data.token);",
+                                    "        console.log('Token saved:', jsonData.data.token);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@cityresq360.com\",\n  \"mat_khau\": \"password123\",\n  \"remember\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Đăng nhập hệ thống và nhận Bearer Token.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `email` | Địa chỉ email của người dùng |\n| `mat_khau` | Mật khẩu đăng nhập |\n| `remember` | Ghi nhớ đăng nhập (true/false) |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"nguyenvana@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/forgot-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "forgot-password"
+                            ]
+                        },
+                        "description": "Gửi yêu cầu đặt lại mật khẩu qua email.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `email` | Địa chỉ email của người dùng |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"reset_token_here\",\n  \"email\": \"nguyenvana@example.com\",\n  \"mat_khau\": \"newpassword123\",\n  \"mat_khau_confirmation\": \"newpassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/reset-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "Đặt lại mật khẩu mới bằng token đã nhận qua email.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `email` | Địa chỉ email của người dùng |\n| `mat_khau` | Mật khẩu đăng nhập |\n| `mat_khau_confirmation` | Nhập lại mật khẩu để xác nhận |\n| `token` | Chuỗi token xác thực |\n"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Authentication (Protected)",
+            "item": [
+                {
+                    "name": "Get Current User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Lấy thông tin chi tiết của người dùng đang đăng nhập."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Đăng xuất khỏi hệ thống và hủy token hiện tại."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/refresh",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "refresh"
+                            ]
+                        },
+                        "description": "Làm mới token xác thực để kéo dài phiên đăng nhập."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ho_ten\": \"Nguyễn Văn A Updated\",\n  \"so_dien_thoai\": \"0901234567\",\n  \"anh_dai_dien\": \"https://example.com/avatar.jpg\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "profile"
+                            ]
+                        },
+                        "description": "Cập nhật thông tin cá nhân (Họ tên, SĐT, Avatar).\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `ho_ten` | Họ và tên đầy đủ |\n| `so_dien_thoai` | Số điện thoại liên lạc |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"mat_khau_cu\": \"oldpassword123\",\n  \"mat_khau_moi\": \"newpassword123\",\n  \"mat_khau_moi_confirmation\": \"newpassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/change-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "change-password"
+                            ]
+                        },
+                        "description": "Thay đổi mật khẩu đăng nhập.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `mat_khau_cu` | Mật khẩu hiện tại đang sử dụng |\n| `mat_khau_moi` | Mật khẩu mới muốn thay đổi |\n| `mat_khau_moi_confirmation` | Xác nhận mật khẩu mới |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"code\": \"123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/verify-email",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "verify-email"
+                            ]
+                        },
+                        "description": "Xác thực địa chỉ email bằng mã OTP.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `code` | Mã xác thực (OTP) |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Phone",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"code\": \"123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/verify-phone",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "verify-phone"
+                            ]
+                        },
+                        "description": "Xác thực số điện thoại bằng mã OTP.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `code` | Mã xác thực (OTP) |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update FCM Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fcm_token\": \"fcm_token_here\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/update-fcm-token",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "update-fcm-token"
+                            ]
+                        },
+                        "description": "Cập nhật token FCM để nhận thông báo đẩy (Push Notification).\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `fcm_token` | Token Firebase Cloud Messaging để nhận thông báo push |\n"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Reports",
+            "item": [
+                {
+                    "name": "List Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports?page=1&per_page=20&danh_muc=&trang_thai=&sort_by=created_at&sort_order=desc",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "Số lượng bản ghi trên mỗi trang (mặc định: 15)"
+                                },
+                                {
+                                    "key": "danh_muc",
+                                    "value": "",
+                                    "description": "ID danh mục (1: Giao thông, 2: Môi trường, 3: Cháy nổ, 4: Rác thải, 5: Ngập lụt, 6: Khác)."
+                                },
+                                {
+                                    "key": "trang_thai",
+                                    "value": "",
+                                    "description": "Trạng thái xử lý (0: Chờ duyệt, 1: Đã duyệt, 2: Đang xử lý, 3: Đã xong, 4: Từ chối)"
+                                },
+                                {
+                                    "key": "sort_by",
+                                    "value": "created_at",
+                                    "description": "Trường cần sắp xếp (vd: created_at, luot_ung_ho)"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "desc",
+                                    "description": "Thứ tự sắp xếp (asc: tăng dần, desc: giảm dần)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách các phản ánh với bộ lọc (trạng thái, danh mục, tìm kiếm...)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"tieu_de\": \"Ổ gà trên đường Lê Lợi\",\n  \"mo_ta\": \"Nhiều ổ gà lớn gây nguy hiểm cho người tham gia giao thông\",\n  \"danh_muc\": 0,\n  \"vi_do\": 10.7769,\n  \"kinh_do\": 106.7009,\n  \"dia_chi\": \"123 Lê Lợi, Quận 1, TP.HCM\",\n  \"media_ids\": [1, 2],\n  \"uu_tien\": 1,\n  \"la_cong_khai\": true,\n  \"the_tags\": []\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports"
+                            ]
+                        },
+                        "description": "Tạo một phản ánh mới. Yêu cầu upload media trước để lấy ID.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `tieu_de` | Tiêu đề của phản ánh (bắt buộc) |\n| `mo_ta` | Mô tả chi tiết nội dung phản ánh |\n| `danh_muc` | ID danh mục (1: Giao thông, 2: Môi trường, 3: Cháy nổ, 4: Rác thải, 5: Ngập lụt, 6: Khác). |\n| `uu_tien` | ID mức độ ưu tiên (1: Thấp, 2: Trung bình, 3: Cao, 4: Khẩn cấp). Mặc định: 2. |\n| `vi_do` | Vĩ độ (Latitude) của vị trí phản ánh |\n| `kinh_do` | Kinh độ (Longitude) của vị trí phản ánh |\n| `dia_chi` | Địa chỉ văn bản của vị trí |\n| `media_ids` | Danh sách ID của ảnh/video đã upload (mảng số nguyên) |\n| `la_cong_khai` | Trạng thái công khai (true: Công khai, false: Riêng tư) |\n| `the_tags` | Danh sách các thẻ (tags) liên quan |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/my?page=1&per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "my"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "Số lượng bản ghi trên mỗi trang (mặc định: 15)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách các phản ánh do chính người dùng tạo."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Nearby Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/nearby?vi_do=10.7769&kinh_do=106.7009&radius=5",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "nearby"
+                            ],
+                            "query": [
+                                {
+                                    "key": "vi_do",
+                                    "value": "10.7769",
+                                    "description": "Vĩ độ (Latitude) của vị trí phản ánh"
+                                },
+                                {
+                                    "key": "kinh_do",
+                                    "value": "106.7009",
+                                    "description": "Kinh độ (Longitude) của vị trí phản ánh"
+                                },
+                                {
+                                    "key": "radius",
+                                    "value": "5",
+                                    "description": "Bán kính tìm kiếm (đơn vị: km)"
+                                }
+                            ]
+                        },
+                        "description": "Tìm các phản ánh xung quanh một vị trí GPS trong bán kính nhất định."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Trending Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/trending?limit=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "trending"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Giới hạn số lượng bản ghi trả về"
+                                }
+                            ]
+                        },
+                        "description": "Lấy các phản ánh đang được quan tâm nhiều nhất (nhiều lượt xem/ủng hộ)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Report Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12"
+                            ]
+                        },
+                        "description": "Xem thông tin chi tiết của một phản ánh cụ thể."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Report",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"tieu_de\": \"Updated Title\",\n  \"mo_ta\": \"Updated description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12"
+                            ]
+                        },
+                        "description": "Cập nhật nội dung phản ánh (chỉ người tạo mới có quyền).\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `tieu_de` | Tiêu đề của phản ánh (bắt buộc) |\n| `mo_ta` | Mô tả chi tiết nội dung phản ánh |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Report",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12"
+                            ]
+                        },
+                        "description": "Xóa phản ánh (chỉ người tạo mới có quyền và khi chưa được xử lý)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Vote Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"loai_binh_chon\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12/vote",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12",
+                                "vote"
+                            ]
+                        },
+                        "description": "Bình chọn (Ủng hộ/Không ủng hộ) cho một phản ánh.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `loai_binh_chon` | Loại bình chọn ('upvote' hoặc 'downvote') |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Increment View",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12/view",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12",
+                                "view"
+                            ]
+                        },
+                        "description": "Tăng lượt xem cho phản ánh (dùng khi người dùng mở xem chi tiết)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Rate Report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"danh_gia_hai_long\": 5,\n  \"nhan_xet\": \"Good\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/13/rate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "13",
+                                "rate"
+                            ]
+                        },
+                        "description": "Đánh giá mức độ hài lòng về kết quả xử lý phản ánh (chỉ người tạo).\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `danh_gia_hai_long` | Điểm đánh giá mức độ hài lòng (1-5 sao) |\n| `nhan_xet` | Lời nhận xét chi tiết sau khi xử lý |\n"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Comments",
+            "item": [
+                {
+                    "name": "Get Report Comments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12/comments?page=1&sort_by=created_at&sort_order=desc",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12",
+                                "comments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "sort_by",
+                                    "value": "created_at",
+                                    "description": "Trường cần sắp xếp (vd: created_at, luot_ung_ho)"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "desc",
+                                    "description": "Thứ tự sắp xếp (asc: tăng dần, desc: giảm dần)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách bình luận của một phản ánh."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Comment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"noi_dung\": \"Tôi cũng gặp vấn đề tương tự ở đoạn đường này\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/reports/12/comments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports",
+                                "12",
+                                "comments"
+                            ]
+                        },
+                        "description": "Thêm bình luận mới vào phản ánh.\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `noi_dung` | Nội dung của bình luận hoặc nhận xét |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Comment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"noi_dung\": \"Updated comment content\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/comments/2",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "comments",
+                                "2"
+                            ]
+                        },
+                        "description": "Chỉnh sửa nội dung bình luận (chỉ người viết).\n\n**Chi tiết tham số (Body):**\n| Tham số | Mô tả |\n|---|---|\n| `noi_dung` | Nội dung của bình luận hoặc nhận xét |\n"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/comments/2",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "comments",
+                                "2"
+                            ]
+                        },
+                        "description": "Xóa bình luận (chỉ người viết)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Like Comment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/comments/2/like",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "comments",
+                                "2",
+                                "like"
+                            ]
+                        },
+                        "description": "Thích một bình luận."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Unlike Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/comments/2/like",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "comments",
+                                "2",
+                                "like"
+                            ]
+                        },
+                        "description": "Bỏ thích một bình luận."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Media",
+            "item": [
+                {
+                    "name": "Upload Media",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.data && jsonData.data.id) {",
+                                    "        // Lưu media ID vào biến để dùng sau",
+                                    "        var mediaIds = pm.collectionVariables.get('uploaded_media_ids') || [];",
+                                    "        mediaIds.push(jsonData.data.id);",
+                                    "        pm.collectionVariables.set('uploaded_media_ids', JSON.stringify(mediaIds));",
+                                    "        console.log('Media ID saved:', jsonData.data.id);",
+                                    "        console.log('All uploaded media IDs:', mediaIds);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": [],
+                                    "description": "File cần upload (ảnh hoặc video)"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "image",
+                                    "type": "text",
+                                    "description": "image or video"
+                                },
+                                {
+                                    "key": "lien_ket_den",
+                                    "value": "phan_anh",
+                                    "type": "text",
+                                    "description": "phan_anh or binh_luan"
+                                },
+                                {
+                                    "key": "id_lien_ket",
+                                    "value": "",
+                                    "type": "text",
+                                    "description": "ID của phản ánh hoặc bình luận (optional, có thể để trống khi upload trước khi tạo report)"
+                                },
+                                {
+                                    "key": "mo_ta",
+                                    "value": "Hình ảnh hiện trường",
+                                    "type": "text",
+                                    "description": "Mô tả chi tiết nội dung phản ánh"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/media/upload",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "media",
+                                "upload"
+                            ]
+                        },
+                        "description": "Upload file ảnh hoặc video lên server. Trả về ID để dùng cho tạo phản ánh."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Media",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/media/my?page=1&type=image",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "media",
+                                "my"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "image",
+                                    "description": "image or video (optional)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách các file media đã upload của người dùng."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Media Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/media/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "media",
+                                "1"
+                            ]
+                        },
+                        "description": "Xem thông tin chi tiết của một file media."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Media",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/media/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "media",
+                                "1"
+                            ]
+                        },
+                        "description": "Xóa file media (chỉ người upload)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Map & Location",
+            "item": [
+                {
+                    "name": "Get Reports on Map",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/map/reports?bounds=10.7,106.6,10.8,106.8",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "map",
+                                "reports"
+                            ],
+                            "query": [
+                                {
+                                    "key": "bounds",
+                                    "value": "10.7,106.6,10.8,106.8",
+                                    "description": "SW_lat,SW_lng,NE_lat,NE_lng"
+                                }
+                            ]
+                        },
+                        "description": "Lấy dữ liệu GeoJSON của các phản ánh để hiển thị trên bản đồ."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Heatmap Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/map/heatmap?days=7",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "map",
+                                "heatmap"
+                            ],
+                            "query": [
+                                {
+                                    "key": "days",
+                                    "value": "7",
+                                    "description": "Number of days"
+                                }
+                            ]
+                        },
+                        "description": "Lấy dữ liệu mật độ phản ánh để vẽ biểu đồ nhiệt (Heatmap)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Map Clusters",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/map/clusters?zoom=12",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "map",
+                                "clusters"
+                            ],
+                            "query": [
+                                {
+                                    "key": "zoom",
+                                    "value": "12",
+                                    "description": "Mức độ zoom của bản đồ"
+                                }
+                            ]
+                        },
+                        "description": "Lấy dữ liệu gom nhóm (Cluster) các phản ánh khi zoom out."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get GTFS Routes",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/map/routes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "map",
+                                "routes"
+                            ]
+                        },
+                        "description": "Lấy thông tin lộ trình phương tiện công cộng (nếu có)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Agencies",
+            "item": [
+                {
+                    "name": "List Agencies",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/agencies",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "agencies"
+                            ]
+                        },
+                        "description": "Lấy danh sách các cơ quan chức năng/đơn vị xử lý."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Agency Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/agencies/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "agencies",
+                                "1"
+                            ]
+                        },
+                        "description": "Xem thông tin chi tiết của một cơ quan."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Agency Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/agencies/1/reports?page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "agencies",
+                                "1",
+                                "reports"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách phản ánh thuộc thẩm quyền của cơ quan."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Agency Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/agencies/1/stats",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "agencies",
+                                "1",
+                                "stats"
+                            ]
+                        },
+                        "description": "Xem thống kê hiệu quả xử lý của cơ quan."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "User Profile & Stats",
+            "item": [
+                {
+                    "name": "Get User Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "1"
+                            ]
+                        },
+                        "description": "Xem profile công khai của user (public)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users/1/reports?page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "1",
+                                "reports"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                }
+                            ]
+                        },
+                        "description": "Xem phản ánh của user (public)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/users/1/stats",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "1",
+                                "stats"
+                            ]
+                        },
+                        "description": "Xem thống kê hoạt động của cá nhân (số phản ánh, điểm tin cậy...)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Overview Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/overview",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "overview"
+                            ]
+                        },
+                        "description": "Tổng quan thống kê cá nhân"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Categories Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/categories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "categories"
+                            ]
+                        },
+                        "description": "Thống kê theo danh mục"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Timeline Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/timeline?period=7d",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "timeline"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "7d",
+                                    "description": "7d, 30d, 90d, 1y"
+                                }
+                            ]
+                        },
+                        "description": "Thống kê theo thời gian"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Leaderboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/leaderboard?limit=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "leaderboard"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Giới hạn số lượng bản ghi trả về"
+                                }
+                            ]
+                        },
+                        "description": "Xem bảng xếp hạng người dùng tích cực."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get City Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/city",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "city"
+                            ]
+                        },
+                        "description": "Thống kê toàn thành phố (public)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Wallet & CityPoints",
+            "item": [
+                {
+                    "name": "Get Wallet Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet"
+                            ]
+                        },
+                        "description": "Xem số dư ví CityPoints"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Transactions History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/transactions?page=1&type=all",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "transactions"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "all",
+                                    "description": "all, earn, spend"
+                                }
+                            ]
+                        },
+                        "description": "Lịch sử giao dịch"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Redeem Reward",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"phan_thuong_id\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/redeem",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "redeem"
+                            ]
+                        },
+                        "description": "Đổi phần thưởng bằng CityPoints"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Available Rewards",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/rewards?page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "rewards"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                }
+                            ]
+                        },
+                        "description": "Danh sách phần thưởng có thể đổi"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Notifications",
+            "item": [
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications?page=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách thông báo"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Unread Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/unread",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "unread"
+                            ]
+                        },
+                        "description": "Lấy thông báo chưa đọc"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Unread Count",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/unread-count",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "unread-count"
+                            ]
+                        },
+                        "description": "Đếm số thông báo chưa đọc"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/2/read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "2",
+                                "read"
+                            ]
+                        },
+                        "description": "Đánh dấu một thông báo là đã đọc."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark All as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/read-all",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "read-all"
+                            ]
+                        },
+                        "description": "Đánh dấu tất cả thông báo là đã đọc."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Notification",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/2",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "2"
+                            ]
+                        },
+                        "description": "Xóa một thông báo."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Notification Settings",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\\n  \\\"push_enabled\\\": true,\\n  \\\"email_enabled\\\": false,\\n  \\\"report_updates\\\": true,\\n  \\\"comment_replies\\\": true\\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/settings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "settings"
+                            ]
+                        },
+                        "description": "Cập nhật cài đặt thông báo"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Categories & Priorities",
+            "item": [
+                {
+                    "name": "List Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/categories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "categories"
+                            ]
+                        },
+                        "description": "Lấy danh sách danh mục phản ánh (Giao thông, Môi trường...)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Category Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/categories/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "categories",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Priorities",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/priorities",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "priorities"
+                            ]
+                        },
+                        "description": "Lấy danh sách mức độ ưu tiên."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Authentication - Missing",
+            "item": [
+                {
+                    "name": "Check Login Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/check-login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "check-login"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Wallet & CityPoints",
+            "item": [
+                {
+                    "name": "Get Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Transactions",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/transactions?page=1&per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "transactions"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "Số lượng bản ghi trên mỗi trang (mặc định: 15)"
+                                }
+                            ]
+                        },
+                        "description": "Xem lịch sử giao dịch/biến động số dư."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List Rewards",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/wallet/rewards",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "wallet",
+                                "rewards"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Notifications",
+            "item": [
+                {
+                    "name": "List Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications?page=1&per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Số trang hiện tại (mặc định: 1)"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "description": "Số lượng bản ghi trên mỗi trang (mặc định: 15)"
+                                }
+                            ]
+                        },
+                        "description": "Lấy danh sách thông báo của người dùng."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Unread Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/unread",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "unread"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Unread Count",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/unread-count",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "unread-count"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/2/read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "2",
+                                "read"
+                            ]
+                        },
+                        "description": "Đánh dấu một thông báo là đã đọc."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark All as Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/read-all",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "read-all"
+                            ]
+                        },
+                        "description": "Đánh dấu tất cả thông báo là đã đọc."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Notification Settings",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/settings",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "settings"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"push_enabled\": true,\n  \"email_enabled\": true,\n  \"report_updates\": true,\n  \"comments\": true,\n  \"new_reports_nearby\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "User Statistics",
+            "item": [
+                {
+                    "name": "Get Overview Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/overview",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "overview"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Categories Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/categories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "categories"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Timeline Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/stats/timeline?period=month",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "stats",
+                                "timeline"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "month"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Weather Data",
+            "item": [
+                {
+                    "name": "Get Current Weather",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/weather/current",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "weather",
+                                "current"
+                            ]
+                        },
+                        "description": "Lấy thông tin thời tiết hiện tại tại vị trí."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Weather Forecast",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/weather/forecast",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "weather",
+                                "forecast"
+                            ]
+                        },
+                        "description": "Lấy dự báo thời tiết cho các ngày tới."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Weather History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/weather/history?days=7",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "weather",
+                                "history"
+                            ],
+                            "query": [
+                                {
+                                    "key": "days",
+                                    "value": "7"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Sync Weather Data (Admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/weather/sync",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "weather",
+                                "sync"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "https://api.cityresq360.io.vn",
+            "type": "string",
+            "description": "API Base URL - Production"
+        },
+        {
+            "key": "production_url",
+            "value": "https://api.cityresq360.io.vn",
+            "type": "string",
+            "description": "Production server URL"
+        },
+        {
+            "key": "local_url",
+            "value": "http://localhost:8000",
+            "type": "string",
+            "description": "Local development URL"
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string",
+            "description": "Authentication token (auto-saved after login)"
+        }
+    ]
+}

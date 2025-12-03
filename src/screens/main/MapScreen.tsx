@@ -47,11 +47,12 @@ const MapScreen = () => {
 
   const categories = [
     { id: -1, label: 'Tất cả', icon: 'view-grid-outline' },
-    { id: 0, label: 'Giao thông', icon: 'road-variant' },
-    { id: 1, label: 'Môi trường', icon: 'tree-outline' },
-    { id: 2, label: 'Cháy nổ', icon: 'fire' },
-    { id: 3, label: 'Rác thải', icon: 'trash-can-outline' },
-    { id: 4, label: 'Ngập lụt', icon: 'weather-pouring' },
+    { id: 1, label: 'Giao thông', icon: 'road-variant' },
+    { id: 2, label: 'Môi trường', icon: 'tree-outline' },
+    { id: 3, label: 'Hỏa hoạn', icon: 'fire' },
+    { id: 4, label: 'Rác thải', icon: 'trash-can-outline' },
+    { id: 5, label: 'Ngập lụt', icon: 'weather-pouring' },
+    { id: 6, label: 'Khác', icon: 'alert-circle-outline' },
   ];
 
   const onUserLocationUpdate = (location: MapboxGL.Location) => {
@@ -72,12 +73,12 @@ const MapScreen = () => {
 
   const getCategoryName = (category: number): string => {
     const categories: { [key: number]: string } = {
-      0: 'Giao thông',
-      1: 'Môi trường',
-      2: 'Cháy nổ',
-      3: 'Rác thải',
-      4: 'Ngập lụt',
-      5: 'Khác',
+      1: 'Giao thông',
+      2: 'Môi trường',
+      3: 'Hỏa hoạn',
+      4: 'Rác thải',
+      5: 'Ngập lụt',
+      6: 'Khác',
     };
     return categories[category] || 'Khác';
   };
@@ -106,14 +107,54 @@ const MapScreen = () => {
 
   const getCategoryIcon = (category: number): string => {
     const iconMap: { [key: number]: string } = {
-      0: 'road-variant',        // Giao thông
-      1: 'tree-outline',        // Môi trường
-      2: 'fire',                // Cháy nổ
-      3: 'trash-can-outline',   // Rác thải
-      4: 'weather-pouring',     // Ngập lụt
-      5: 'alert-circle',        // Khác
+      1: 'road-variant',        // Giao thông
+      2: 'tree-outline',        // Môi trường
+      3: 'fire',                // Hỏa hoạn
+      4: 'trash-can-outline',   // Rác thải
+      5: 'weather-pouring',     // Ngập lụt
+      6: 'alert-circle',        // Khác
     };
     return iconMap[category] || 'alert-circle';
+  };
+
+  const getCategoryColor = (category: number): string => {
+    const colorMap: { [key: number]: string } = {
+      1: '#FF9500',  // Giao thông - Orange
+      2: '#34C759',  // Môi trường - Green
+      3: '#FF3B30',  // Hỏa hoạn - Red
+      4: '#8E6F3E',  // Rác thải - Brown
+      5: '#007AFF',  // Ngập lụt - Blue
+      6: '#8E8E93',  // Khác - Gray
+    };
+    return colorMap[category] || '#8E8E93';
+  };
+
+  const fitMapToReports = (reports: MapReport[]) => {
+    if (!cameraRef.current || !reports || reports.length === 0) return;
+
+    // Calculate bounds from all reports
+    let minLon = reports[0].kinh_do;
+    let maxLon = reports[0].kinh_do;
+    let minLat = reports[0].vi_do;
+    let maxLat = reports[0].vi_do;
+
+    reports.forEach(report => {
+      if (report.kinh_do < minLon) minLon = report.kinh_do;
+      if (report.kinh_do > maxLon) maxLon = report.kinh_do;
+      if (report.vi_do < minLat) minLat = report.vi_do;
+      if (report.vi_do > maxLat) maxLat = report.vi_do;
+    });
+
+    // Add padding to bounds (20% for better view)
+    const lonPadding = Math.max((maxLon - minLon) * 0.2, 0.01); // Minimum padding
+    const latPadding = Math.max((maxLat - minLat) * 0.2, 0.01);
+
+    cameraRef.current.fitBounds(
+      [minLon - lonPadding, minLat - latPadding], // southwest
+      [maxLon + lonPadding, maxLat + latPadding], // northeast
+      [80, 80, 80, 80], // padding: top, right, bottom, left (increased)
+      1000 // animation duration
+    );
   };
 
   const fetchMapReports = async () => {
@@ -180,6 +221,14 @@ const MapScreen = () => {
       fetchMapReports();
     }
   }, [selectedCategory]);
+
+  // Fit map to reports when they change and a category is selected
+  useEffect(() => {
+    if (mapReports && mapReports.length > 0 && selectedCategory !== -1) {
+      // Only auto-fit when a specific category is selected (not "All")
+      fitMapToReports(mapReports);
+    }
+  }, [mapReports, selectedCategory]);
 
   // Fetch report detail when a marker is selected
   const fetchReportDetail = async (reportId: number) => {
@@ -352,12 +401,12 @@ const MapScreen = () => {
               iconImage: [
                 'match',
                 ['get', 'danh_muc'],
-                0, 'traffic',       // Giao thông
-                1, 'environment',   // Môi trường
-                2, 'fire',          // Cháy nổ
-                3, 'trash',         // Rác thải
-                4, 'flood',         // Ngập lụt
-                'default'           // Default
+                1, 'traffic',       // Giao thông
+                2, 'environment',   // Môi trường
+                3, 'fire',          // Hỏa hoạn
+                4, 'trash',         // Rác thải
+                5, 'flood',         // Ngập lụt
+                'default'           // Khác
               ],
               iconSize: 0.08,
               iconAllowOverlap: true,
@@ -408,18 +457,27 @@ const MapScreen = () => {
                 key={cat.id}
                 style={[
                   styles.filterChip,
-                  selectedCategory === cat.id && styles.filterChipActive
+                  selectedCategory === cat.id && {
+                    backgroundColor: cat.id === -1 ? theme.colors.primary : getCategoryColor(cat.id)
+                  }
                 ]}
                 onPress={() => setSelectedCategory(cat.id)}
               >
                 <Icon
                   name={cat.icon}
                   size={16}
-                  color={selectedCategory === cat.id ? theme.colors.white : theme.colors.textSecondary}
+                  color={
+                    selectedCategory === cat.id
+                      ? theme.colors.white
+                      : (cat.id === -1 ? theme.colors.textSecondary : getCategoryColor(cat.id))
+                  }
                 />
                 <Text style={[
                   styles.filterText,
-                  selectedCategory === cat.id && styles.filterTextActive
+                  selectedCategory === cat.id && styles.filterTextActive,
+                  cat.id !== -1 && selectedCategory !== cat.id && {
+                    color: getCategoryColor(cat.id)
+                  }
                 ]}>
                   {cat.label}
                 </Text>
@@ -495,9 +553,19 @@ const MapScreen = () => {
             >
               {/* Badges */}
               <View style={styles.sheetRow}>
-                <View style={styles.sheetBadge}>
-                  <Icon name="tag-outline" size={16} color={theme.colors.primary} />
-                  <Text style={styles.sheetBadgeText}>
+                <View style={[
+                  styles.sheetBadge,
+                  { backgroundColor: getCategoryColor(selectedReport.danh_muc) + '15' }
+                ]}>
+                  <Icon
+                    name={getCategoryIcon(selectedReport.danh_muc)}
+                    size={16}
+                    color={getCategoryColor(selectedReport.danh_muc)}
+                  />
+                  <Text style={[
+                    styles.sheetBadgeText,
+                    { color: getCategoryColor(selectedReport.danh_muc) }
+                  ]}>
                     {selectedReport.danh_muc_text || getCategoryName(selectedReport.danh_muc)}
                   </Text>
                 </View>
