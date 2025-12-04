@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Platform, Modal, Dimensions, ActivityIndicator, PermissionsAndroid } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Platform, Modal, Dimensions, ActivityIndicator, PermissionsAndroid, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MapboxGL from '@rnmapbox/maps';
@@ -10,7 +10,7 @@ import InputCustom from '../../component/InputCustom';
 import ButtonCustom from '../../component/ButtonCustom';
 import ModalCustom from '../../component/ModalCustom';
 import { theme, SPACING, FONT_SIZE, BORDER_RADIUS, SCREEN_PADDING, wp, hp } from '../../theme';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { reportService } from '../../services/reportService';
 import { mapService } from '../../services/mapService';
 import { mediaService } from '../../services/mediaService';
@@ -89,13 +89,62 @@ const CreateReportScreen = () => {
     });
   };
 
-  const handleSelectMedia = async () => {
-    if (uploadedMedia.length >= 5) {
-      setErrorMessage('Bạn chỉ được tải lên tối đa 5 ảnh/video');
-      setShowErrorModal(true);
-      return;
+  const uploadMediaAssets = async (assets: any[]) => {
+    setUploadingMedia(true);
+    const newMedia: Media[] = [];
+    const newMediaIds: number[] = [];
+
+    for (const asset of assets) {
+      try {
+        console.log('🚀 [API Request] Upload Media:', asset.fileName);
+        const response = await mediaService.uploadMedia(
+          asset,
+          asset.type?.includes('video') ? 'video' : 'image',
+          'phan_anh',
+          'Hình ảnh phản ánh'
+        );
+        console.log('✅ [API Response] Upload Media:', response);
+
+        if (response.success && response.data) {
+          newMedia.push(response.data);
+          newMediaIds.push(response.data.id);
+        }
+      } catch (error) {
+        console.error('❌ [API Error] Upload Media:', error);
+      }
     }
 
+    if (newMedia.length > 0) {
+      setUploadedMedia([...uploadedMedia, ...newMedia]);
+      setFormData(prev => ({
+        ...prev,
+        media_ids: [...(prev.media_ids || []), ...newMediaIds]
+      }));
+    }
+    setUploadingMedia(false);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const result = await launchCamera({
+        mediaType: 'photo',
+        quality: 0.5, // Reduced quality to avoid 413
+        maxWidth: 1024, // Resize large images
+        maxHeight: 1024,
+        saveToPhotos: true,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        await uploadMediaAssets(result.assets);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      setErrorMessage('Không thể mở camera. Vui lòng kiểm tra quyền truy cập.');
+      setShowErrorModal(true);
+    }
+  };
+
+  const handleSelectFromGallery = async () => {
     try {
       const result = await launchImageLibrary({
         mediaType: 'mixed',
@@ -106,43 +155,41 @@ const CreateReportScreen = () => {
       });
 
       if (result.assets && result.assets.length > 0) {
-        setUploadingMedia(true);
-        const newMedia: Media[] = [];
-        const newMediaIds: number[] = [];
-
-        for (const asset of result.assets) {
-          try {
-            console.log('🚀 [API Request] Upload Media:', asset.fileName);
-            const response = await mediaService.uploadMedia(
-              asset,
-              asset.type?.includes('video') ? 'video' : 'image',
-              'phan_anh',
-              'Hình ảnh phản ánh'
-            );
-            console.log('✅ [API Response] Upload Media:', response);
-
-            if (response.success && response.data) {
-              newMedia.push(response.data);
-              newMediaIds.push(response.data.id);
-            }
-          } catch (error) {
-            console.error('❌ [API Error] Upload Media:', error);
-          }
-        }
-
-        if (newMedia.length > 0) {
-          setUploadedMedia([...uploadedMedia, ...newMedia]);
-          setFormData(prev => ({
-            ...prev,
-            media_ids: [...(prev.media_ids || []), ...newMediaIds]
-          }));
-        }
+        await uploadMediaAssets(result.assets);
       }
     } catch (error) {
       console.error('Image picker error:', error);
-    } finally {
-      setUploadingMedia(false);
+      setErrorMessage('Không thể chọn ảnh. Vui lòng thử lại.');
+      setShowErrorModal(true);
     }
+  };
+
+  const handleSelectMedia = () => {
+    if (uploadedMedia.length >= 5) {
+      setErrorMessage('Bạn chỉ được tải lên tối đa 5 ảnh/video');
+      setShowErrorModal(true);
+      return;
+    }
+
+    Alert.alert(
+      'Chọn hình ảnh',
+      'Chọn nguồn hình ảnh',
+      [
+        {
+          text: 'Chụp ảnh',
+          onPress: handleTakePhoto,
+        },
+        {
+          text: 'Chọn từ thư viện',
+          onPress: handleSelectFromGallery,
+        },
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleRemoveMedia = (mediaId: number) => {

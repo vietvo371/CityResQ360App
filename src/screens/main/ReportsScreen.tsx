@@ -64,16 +64,25 @@ const ReportsScreen = () => {
       });
 
       if (response.success && response.data) {
-        console.log('Reports:', response.data);
+        console.log('Reports response:', response.data);
+
+        // Laravel pagination: data is wrapped in response.data.data
+        const reportsData = (response.data as any).data || response.data;
+        const extractedReports = Array.isArray(reportsData) ? reportsData : [];
+        console.log('Extracted reports:', extractedReports);
+        console.log('Reports count:', extractedReports.length);
+
         if (page === 1) {
-          setReports(response.data);
+          setReports(extractedReports);
         } else {
-          setReports(prev => [...prev, ...response.data]);
+          setReports(prev => [...prev, ...extractedReports]);
         }
 
-        if (response.meta) {
-          setCurrentPage(response.meta.current_page);
-          setTotalPages(response.meta.last_page);
+        // Handle pagination meta - can be in response.meta OR response.data itself
+        if (response.meta || (response.data as any).last_page) {
+          const meta = response.meta || response.data;
+          setCurrentPage((meta as any).current_page || page);
+          setTotalPages((meta as any).last_page || 1);
         }
       }
     } catch (error) {

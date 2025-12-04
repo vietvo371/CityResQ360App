@@ -2,9 +2,31 @@ import api from '../utils/Api';
 import { ApiResponse } from '../types/api/common';
 import { Report, ReportDetail, CreateReportRequest, ReportFilterParams } from '../types/api/report';
 
+// Paginated response wrapper for list endpoints
+interface PaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+    from: number;
+    to: number;
+    first_page_url: string;
+    last_page_url: string;
+    next_page_url: string | null;
+    prev_page_url: string | null;
+    path: string;
+    links: Array<{
+        url: string | null;
+        label: string;
+        active: boolean;
+        page?: number | null;
+    }>;
+}
+
 export const reportService = {
-    getReports: async (params?: ReportFilterParams): Promise<ApiResponse<Report[]>> => {
-        const response = await api.get<ApiResponse<Report[]>>('/reports', { params });
+    getReports: async (params?: ReportFilterParams): Promise<ApiResponse<PaginatedResponse<Report>>> => {
+        const response = await api.get<ApiResponse<PaginatedResponse<Report>>>('/reports', { params });
         return response.data;
     },
 
@@ -28,8 +50,8 @@ export const reportService = {
         return response.data;
     },
 
-    getMyReports: async (params?: ReportFilterParams): Promise<ApiResponse<Report[]>> => {
-        const response = await api.get<ApiResponse<Report[]>>('/reports/my', { params });
+    getMyReports: async (params?: ReportFilterParams): Promise<ApiResponse<PaginatedResponse<Report>>> => {
+        const response = await api.get<ApiResponse<PaginatedResponse<Report>>>('/reports/my', { params });
         return response.data;
     },
 

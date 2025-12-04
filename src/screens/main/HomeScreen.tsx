@@ -4,7 +4,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, S
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/types';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { RootStackParamList, MainTabParamList } from '../../navigation/types';
 import {
   theme,
   SPACING,
@@ -25,8 +27,20 @@ import { notificationService } from '../../services/notificationService';
 import { statsService } from '../../services/statsService';
 import { reportService } from '../../services/reportService';
 import { Report } from '../../types/api/report';
+import {
+  getStatusText,
+  getStatusColor,
+  formatViewCount,
+  getNetVotes,
+  getReportTags,
+  getPriorityText,
+  isReportUrgent
+} from '../../utils/reportUtils';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Home'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 interface TopCategory {
   danh_muc: number;
@@ -79,8 +93,22 @@ const HomeScreen = () => {
         sort_order: 'desc'
       });
       console.log('reportsResponse', reportsResponse);
+      console.log('reportsResponse.data type:', typeof reportsResponse.data);
+      console.log('reportsResponse.data isArray:', Array.isArray(reportsResponse.data));
+      console.log('reportsResponse.data.data:', reportsResponse.data?.data);
+      console.log('reportsResponse.data.data length:', reportsResponse.data?.data?.length);
+
       if (reportsResponse.success && reportsResponse.data) {
-        setRecentReports(reportsResponse.data);
+        // Laravel pagination: data is wrapped in reportsResponse.data.data
+        const reportsData = (reportsResponse.data as any).data || reportsResponse.data;
+        const reports = Array.isArray(reportsData) ? reportsData : [];
+        console.log('Extracted reports:', reports);
+        console.log('Reports count:', reports.length);
+        setRecentReports(reports);
+      } else {
+        // Set to empty array if API fails
+        console.log('API failed or no data, setting empty array');
+        setRecentReports([]);
       }
     } catch (error) {
       console.error('Error fetching home data:', error);
@@ -188,7 +216,7 @@ const HomeScreen = () => {
     }
 
     const resolvedPercentage = statsData.ty_le_giai_quyet
-      ? `${statsData.ty_le_giai_quyet.toFixed(1)}%`
+      ? `${statsData.ty_le_giai_quyet.toFixed(1)}% `
       : '--';
 
     return [
@@ -215,7 +243,7 @@ const HomeScreen = () => {
         title: 'Đang xử lý',
         value: formatNumber(statsData.dang_xu_ly),
         change: statsData.thoi_gian_xu_ly_trung_binh
-          ? `${Math.round(statsData.thoi_gian_xu_ly_trung_binh)}h`
+          ? `${Math.round(statsData.thoi_gian_xu_ly_trung_binh)} h`
           : '--',
         trend: 'down' as const,
         icon: 'progress-clock',
@@ -244,33 +272,11 @@ const HomeScreen = () => {
     }
   };
 
-  const getStatusColor = (status: number): string => {
-    switch (status) {
-      case 0: return theme.colors.warning;
-      case 1: return theme.colors.info;
-      case 2: return theme.colors.info;
-      case 3: return theme.colors.success;
-      case 4: return theme.colors.error;
-      default: return theme.colors.textSecondary;
-    }
-  };
-
-  const getStatusLabel = (status: number): string => {
-    switch (status) {
-      case 0: return 'Tiếp nhận';
-      case 1: return 'Đã xác minh';
-      case 2: return 'Đang xử lý';
-      case 3: return 'Hoàn thành';
-      case 4: return 'Từ chối';
-      default: return 'Khác';
-    }
-  };
-
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
+      return `${(num / 1000000).toFixed(1)} M`;
     } else if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
+      return `${(num / 1000).toFixed(1)} K`;
     }
     return num.toString();
   };
@@ -507,10 +513,18 @@ const HomeScreen = () => {
               <Text style={styles.sectionTitle}>Sự cố mới nhất</Text>
               <View style={[styles.sectionDivider, { flex: 1, maxWidth: 100 }]} />
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Reports' })}>
+            <TouchableOpacity onPress={() => (navigation as any).navigate('Reports')}>
               <Text style={styles.seeAllLink}>Xem tất cả →</Text>
             </TouchableOpacity>
           </View>
+
+          {(() => {
+            console.log('Render check - loading:', loading);
+            console.log('Render check - recentReports:', recentReports);
+            console.log('Render check - recentReports.length:', recentReports.length);
+            console.log('Render check - Array.isArray:', Array.isArray(recentReports));
+            return null;
+          })()}
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -549,7 +563,7 @@ const HomeScreen = () => {
                       <Text style={[styles.statusText, {
                         color: getStatusColor(report.trang_thai)
                       }]}>
-                        {getStatusLabel(report.trang_thai)}
+                        {getStatusText(report.trang_thai)}
                       </Text>
                     </View>
                   </View>

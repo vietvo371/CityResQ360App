@@ -24,12 +24,12 @@ import VerifyOTPBottomSheet from '../../component/VerifyOTPBottomSheet';
 const UpdatePasswordScreen = () => {
   const navigation = useNavigation();
   const { t } = useTranslation();
-  
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -62,24 +62,24 @@ const UpdatePasswordScreen = () => {
   }, []);
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-    
+    const newErrors: { [key: string]: string } = {};
+
     if (!currentPassword.trim()) {
       newErrors.currentPassword = t('changePassword.currentPasswordRequired');
     }
-    
+
     if (!newPassword.trim()) {
       newErrors.newPassword = t('changePassword.newPasswordRequired');
     } else if (newPassword.length < 8) {
       newErrors.newPassword = t('changePassword.passwordMinLength');
     }
-    
+
     if (!confirmPassword.trim()) {
       newErrors.confirmPassword = t('changePassword.confirmPasswordRequired');
     } else if (newPassword !== confirmPassword) {
       newErrors.confirmPassword = t('changePassword.passwordsNotMatch');
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -101,10 +101,10 @@ const UpdatePasswordScreen = () => {
       });
 
       console.log('Update password response:', response.data);
-      
+
       if (response.data.status) {
         Alert.alert(
-          t('common.success'), 
+          t('common.success'),
           t('changePassword.passwordChanged'),
           [
             {
@@ -116,13 +116,13 @@ const UpdatePasswordScreen = () => {
       } else {
         Alert.alert('', response.data.message || t('changePassword.passwordChangeFailed'));
       }
-      
+
     } catch (error: any) {
       console.log('Update password error:', error);
-      
+
       if (error.response?.status === 422) {
         const validationErrors = error.response.data.errors || {};
-        const formattedErrors: {[key: string]: string} = {};
+        const formattedErrors: { [key: string]: string } = {};
         Object.keys(validationErrors).forEach(key => {
           if (Array.isArray(validationErrors[key])) {
             formattedErrors[key] = validationErrors[key][0];
@@ -162,15 +162,15 @@ const UpdatePasswordScreen = () => {
     onToggleVisibility: () => void
   ) => {
     const passwordStrength = fieldKey === 'newPassword' ? getPasswordStrength(value) : null;
-    
+
     return (
       <View style={styles.inputGroup}>
         <Text style={styles.label}>{label}</Text>
-        
+
         <View style={styles.passwordContainer}>
           <TextInput
             style={[
-              styles.passwordInput, 
+              styles.passwordInput,
               errors[fieldKey] && styles.inputError
             ]}
             value={value}
@@ -195,20 +195,20 @@ const UpdatePasswordScreen = () => {
             secureTextEntry={!showPassword}
             autoCapitalize="none"
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.eyeButton}
             onPress={onToggleVisibility}
           >
-            <Icon 
-              name={showPassword ? "eye-off" : "eye"} 
-              size={20} 
-              color="#666" 
+            <Icon
+              name={showPassword ? "eye-off" : "eye"}
+              size={20}
+              color="#666"
             />
           </TouchableOpacity>
         </View>
-        
+
         {errors[fieldKey] && <Text style={styles.errorText}>{errors[fieldKey]}</Text>}
-        
+
         {passwordStrength && (
           <View style={styles.passwordStrengthContainer}>
             <Text style={styles.passwordStrengthLabel}>
@@ -226,14 +226,14 @@ const UpdatePasswordScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Icon name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('changePassword.title')}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleUpdatePassword}
           disabled={loading}
@@ -281,7 +281,7 @@ const UpdatePasswordScreen = () => {
           </Text>
         </View>
       </ScrollView>
-      
+
       <VerifyOTPBottomSheet
         visible={showOtp}
         onClose={() => setShowOtp(false)}

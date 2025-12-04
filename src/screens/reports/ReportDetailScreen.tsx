@@ -251,12 +251,12 @@ const ReportDetailScreen = () => {
             <Text style={styles.description}>{report.mo_ta}</Text>
 
             {/* Media Gallery */}
-            {report.media && report.media.length > 0 && (
+            {report.hinh_anhs && report.hinh_anhs.length > 0 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaScroll}>
-                {report.media.map((item) => (
+                {report.hinh_anhs.map((item) => (
                   <TouchableOpacity key={item.id} activeOpacity={0.9}>
                     <Image
-                      source={{ uri: item.url }}
+                      source={{ uri: item.duong_dan_hinh_anh }}
                       style={styles.mediaImage}
                       resizeMode="cover"
                     />
@@ -292,17 +292,21 @@ const ReportDetailScreen = () => {
 
           {/* Comments Section */}
           <View style={styles.commentsSection}>
-            <Text style={styles.sectionTitle}>Bình luận ({report.comments?.length || 0})</Text>
-            {report.comments && report.comments.length > 0 ? (
-              report.comments.map((comment) => (
+            <Text style={styles.sectionTitle}>Bình luận ({report.binh_luans?.length || 0})</Text>
+            {report.binh_luans && report.binh_luans.length > 0 ? (
+              report.binh_luans.map((comment) => (
                 <View key={comment.id} style={styles.commentItem}>
                   <View style={styles.commentHeader}>
                     <View style={styles.userInfo}>
                       <View style={styles.avatarPlaceholder}>
-                        <Text style={styles.avatarText}>{comment.user.ho_ten.charAt(0)}</Text>
+                        <Text style={styles.avatarText}>
+                          {((comment as any).user?.ho_ten || (comment as any).nguoi_dung?.ho_ten || 'U').charAt(0)}
+                        </Text>
                       </View>
                       <View>
-                        <Text style={styles.commentUser}>{comment.user.ho_ten}</Text>
+                        <Text style={styles.commentUser}>
+                          {(comment as any).user?.ho_ten || (comment as any).nguoi_dung?.ho_ten || 'Người dùng'}
+                        </Text>
                         <Text style={styles.commentTime}>
                           {new Date(comment.created_at || comment.ngay_tao || '').toLocaleDateString('vi-VN')}
                         </Text>

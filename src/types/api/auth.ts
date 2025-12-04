@@ -9,13 +9,25 @@ export interface User {
     so_dien_thoai?: string;
     anh_dai_dien?: string | null;
     vai_tro?: number; // 0 = citizen, 1 = government, etc.
+    trang_thai?: number; // User status
     diem_thanh_pho?: number; // City points
+    xac_thuc_cong_dan?: boolean; // Citizen verification status
     diem_uy_tin?: number; // Reputation points
+    tong_so_phan_anh?: number; // Total reports
+    so_phan_anh_chinh_xac?: number; // Accurate reports count
+    ty_le_chinh_xac?: number; // Accuracy rate
     cap_huy_hieu?: number; // Badge level
     cap_huy_hieu_text?: string;
-    xac_thuc_cong_dan?: boolean; // Citizen verification status
-    tong_so_phan_anh?: number; // Total reports
-    ty_le_chinh_xac?: number; // Accuracy rate
+    push_token?: string | null;
+    tuy_chon_thong_bao?: {
+        sms: boolean;
+        push: boolean;
+        email: boolean;
+    } | null;
+    remember_token?: string | null;
+    created_at?: string;
+    updated_at?: string;
+    deleted_at?: string | null;
     ngay_tham_gia?: string; // Join date
     role?: UserRole;
 }

@@ -7,7 +7,7 @@ import { theme, SPACING, FONT_SIZE } from '../../theme';
 const MapReportsScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <PageHeader title="Bản đồ phản ánh" variant="simple" />
+      <PageHeader title="Bản đồ phản ánh" variant="default" />
       <View style={styles.content}>
         <Text style={styles.placeholderText}>Bản đồ phản ánh đang được phát triển</Text>
       </View>

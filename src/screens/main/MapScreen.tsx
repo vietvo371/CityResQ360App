@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform, ScrollView, TextInput, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform, ScrollView, TextInput, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -191,12 +191,43 @@ const MapScreen = () => {
 
       const response = await mapService.getMapReports(mapBounds, filters);
       console.log('Response:', response);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data:', response.data);
 
-      if (response.success) {
-        console.log('Setting map reports, count:', response.data?.length);
-        setMapReports(response.data);
+      if (response.success && response.data) {
+        // API returns GeoJSON FeatureCollection
+        const geojson = response.data as any;
+
+        if (geojson.type === 'FeatureCollection' && geojson.features) {
+          // Extract MapReport objects from GeoJSON features
+          const reports: MapReport[] = geojson.features.map((feature: any) => {
+            const props = feature.properties;
+            const coords = feature.geometry.coordinates; // [lon, lat]
+
+            return {
+              id: props.id,
+              tieu_de: props.tieu_de,
+              danh_muc: props.danh_muc,
+              danh_muc_text: props.danh_muc_text,
+              trang_thai: props.trang_thai,
+              uu_tien: props.uu_tien,
+              marker_color: props.marker_color,
+              kinh_do: coords[0], // longitude
+              vi_do: coords[1],   // latitude
+              nguoi_dung: props.nguoi_dung,
+            } as MapReport;
+          });
+
+          console.log('Extracted reports from GeoJSON:', reports);
+          console.log('Reports count:', reports.length);
+          setMapReports(reports);
+        } else {
+          console.log('Response is not a valid GeoJSON FeatureCollection');
+          setMapReports([]);
+        }
       } else {
         console.log('Response not successful:', response.message);
+        setMapReports([]);
       }
     } catch (error) {
       console.error('Error fetching map reports:', error);
@@ -597,6 +628,24 @@ const MapScreen = () => {
                     </View>
                   )}
 
+                  {/* Media Gallery */}
+                  {reportDetail.hinh_anhs && reportDetail.hinh_anhs.length > 0 && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Hình ảnh</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaScroll}>
+                        {reportDetail.hinh_anhs.map((item) => (
+                          <TouchableOpacity key={item.id} activeOpacity={0.9}>
+                            <Image
+                              source={{ uri: item.duong_dan_hinh_anh }}
+                              style={styles.mediaImage}
+                              resizeMode="cover"
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+
                   {/* Address & Time */}
                   <View style={styles.detailSection}>
                     <View style={styles.detailRow}>
@@ -635,26 +684,28 @@ const MapScreen = () => {
                     </View>
                     <View style={styles.statItem}>
                       <Icon name="comment-outline" size={18} color={theme.colors.textSecondary} />
-                      <Text style={styles.statText}>{reportDetail.comments?.length || 0}</Text>
+                      <Text style={styles.statText}>{reportDetail.binh_luans?.length || 0}</Text>
                     </View>
                   </View>
 
                   {/* Comments */}
-                  {reportDetail.comments && reportDetail.comments.length > 0 && (
+                  {reportDetail.binh_luans && reportDetail.binh_luans.length > 0 && (
                     <View style={styles.commentsSection}>
                       <Text style={styles.commentsTitle}>
-                        Bình luận ({reportDetail.comments.length})
+                        Bình luận ({reportDetail.binh_luans.length})
                       </Text>
-                      {reportDetail.comments.slice(0, 3).map((comment) => (
+                      {reportDetail.binh_luans.slice(0, 3).map((comment) => (
                         <View key={comment.id} style={styles.commentItem}>
                           <View style={styles.commentHeader}>
                             <View style={styles.commentAvatar}>
                               <Text style={styles.commentAvatarText}>
-                                {comment.user.ho_ten.charAt(0)}
+                                {((comment as any).user?.ho_ten || (comment as any).nguoi_dung?.ho_ten || 'U').charAt(0)}
                               </Text>
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.commentUser}>{comment.user.ho_ten}</Text>
+                              <Text style={styles.commentUser}>
+                                {(comment as any).user?.ho_ten || (comment as any).nguoi_dung?.ho_ten || 'Người dùng'}
+                              </Text>
                               <Text style={styles.commentTime}>
                                 {new Date(comment.created_at || comment.ngay_tao || '').toLocaleDateString('vi-VN')}
                               </Text>
@@ -665,9 +716,9 @@ const MapScreen = () => {
                           </Text>
                         </View>
                       ))}
-                      {reportDetail.comments.length > 3 && (
+                      {reportDetail.binh_luans.length > 3 && (
                         <Text style={styles.moreComments}>
-                          +{reportDetail.comments.length - 3} bình luận khác
+                          +{reportDetail.binh_luans.length - 3} bình luận khác
                         </Text>
                       )}
                     </View>
@@ -1001,14 +1052,22 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   moreComments: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: FONT_SIZE.sm,
     color: theme.colors.primary,
     fontWeight: '600',
     textAlign: 'center',
-    marginTop: SPACING.xs,
+    paddingVertical: SPACING.xs,
+  },
+  mediaScroll: {
+    marginTop: SPACING.sm,
+  },
+  mediaImage: {
+    width: wp('60%'),
+    height: wp('40%'),
+    borderRadius: BORDER_RADIUS.lg,
+    marginRight: SPACING.md,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 });
 
 export default MapScreen;
-
-

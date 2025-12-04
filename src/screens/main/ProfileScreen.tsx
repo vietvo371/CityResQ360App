@@ -21,6 +21,12 @@ import { User } from '../../types/api/auth';
 import { Report } from '../../types/api/report';
 import ReportCard from '../../components/reports/ReportCard';
 import { AlertService } from '../../services/AlertService';
+import {
+  getStatusText,
+  getStatusColor,
+  getReportTags,
+  isReportUrgent
+} from '../../utils/reportUtils';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -49,6 +55,7 @@ const ProfileScreen = () => {
   const fetchProfile = useCallback(async () => {
     try {
       const profileData = await authService.getProfile();
+      console.log('Profile data:', profileData);
       setUser(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -73,15 +80,19 @@ const ProfileScreen = () => {
       });
 
       if (response.success && response.data) {
+        const reportsData = (response.data as any).data || response.data;
+        console.log('reportsData:', reportsData);
+
         if (page === 1) {
-          setMyReports(response.data);
+          setMyReports(Array.isArray(reportsData) ? reportsData : []);
         } else {
-          setMyReports(prev => [...prev, ...response.data]);
+          setMyReports(prev => [...prev, ...(Array.isArray(reportsData) ? reportsData : [])]);
         }
 
-        if (response.meta) {
-          setCurrentPage(response.meta.current_page);
-          setTotalPages(response.meta.last_page);
+        if (response.meta || (response.data as any).last_page) {
+          const meta = response.meta || response.data;
+          setCurrentPage((meta as any).current_page || page);
+          setTotalPages((meta as any).last_page || 1);
         }
       }
     } catch (error) {
@@ -230,7 +241,7 @@ const ProfileScreen = () => {
   const handleEditReport = (report: Report) => {
     // Only allow editing if status is pending (0) or confirmed (1)
     if (report.trang_thai <= 1) {
-      (navigation as any).navigate('EditReport', { reportId: report.id });
+      (navigation as any).navigate('EditReport', { id: report.id });
     } else {
       setInfoModalTitle('Không thể chỉnh sửa');
       setInfoModalMessage('Phản ánh này đang được xử lý hoặc đã hoàn thành nên không thể chỉnh sửa.');

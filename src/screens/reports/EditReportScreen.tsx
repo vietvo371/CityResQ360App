@@ -44,7 +44,7 @@ const PRIORITIES = [
 const EditReportScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<EditReportRouteProp>();
-  const { reportId } = route.params;
+  const { id: reportId } = route.params;
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -89,6 +89,7 @@ const EditReportScreen = () => {
       try {
         setLoading(true);
         const response = await reportService.getReportDetail(reportId);
+        console.log('Report detail response:', response);
 
         if (response.success && response.data) {
           const report = response.data;
@@ -102,11 +103,20 @@ const EditReportScreen = () => {
             dia_chi: report.dia_chi,
             uu_tien: report.uu_tien_id,
             la_cong_khai: report.la_cong_khai,
-            the_tags: report.the_tags ? (typeof report.the_tags === 'string' ? report.the_tags.split(',') : report.the_tags) : [],
-            media_ids: report.media?.map(m => m.id) || []
+            the_tags: report.the_tags ? (typeof report.the_tags === 'string' ? (report.the_tags as string).split(',') : (report.the_tags as string[])) : [],
+            media_ids: report.hinh_anhs?.map(m => m.id) || report.media?.map(m => m.id) || []
           });
 
-          if (report.media) {
+          // Convert hinh_anhs to Media format for display
+          if (report.hinh_anhs && report.hinh_anhs.length > 0) {
+            const mediaList: Media[] = report.hinh_anhs.map(img => ({
+              id: img.id,
+              url: img.duong_dan_hinh_anh,
+              type: img.loai_file.includes('video') ? 'video' : 'image',
+              thumbnail_url: img.duong_dan_thumbnail || undefined
+            }));
+            setUploadedMedia(mediaList);
+          } else if (report.media) {
             setUploadedMedia(report.media);
           }
         }

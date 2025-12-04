@@ -11,6 +11,8 @@ import ModalCustom from '../../component/ModalCustom';
 import { theme, SPACING, FONT_SIZE, BORDER_RADIUS, ICON_SIZE, SCREEN_PADDING, wp } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { mediaService } from '../../services/mediaService';
 
 type UserProfileRouteProp = RouteProp<RootStackParamList, 'UserProfile'>;
 
@@ -21,7 +23,7 @@ const UserProfileScreen = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -63,9 +65,42 @@ const UserProfileScreen = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePickImage = () => {
-    // TODO: Install expo-image-picker to enable image upload
-    setShowImagePickerModal(true);
+  const handlePickImage = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.7,
+        maxWidth: 512,
+        maxHeight: 512,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setUploadingAvatar(true);
+
+        try {
+          const response = await mediaService.uploadMedia(
+            asset,
+            'image',
+            'phan_anh',
+            'Avatar'
+          );
+
+          if (response.success && response.data) {
+            // Update formData with new avatar URL
+            setFormData({ ...formData, anh_dai_dien: response.data.url });
+          }
+        } catch (error) {
+          console.error('Upload avatar error:', error);
+          setErrorMessage('Không thể tải ảnh lên. Vui lòng thử lại.');
+          setShowErrorModal(true);
+        } finally {
+          setUploadingAvatar(false);
+        }
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+    }
   };
 
   const handleSave = async () => {
@@ -152,8 +187,13 @@ const UserProfileScreen = () => {
               <TouchableOpacity
                 style={styles.editAvatarButton}
                 onPress={handlePickImage}
+                disabled={uploadingAvatar}
               >
-                <Icon name="camera" size={20} color={theme.colors.white} />
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Icon name="camera" size={20} color={theme.colors.white} />
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -277,20 +317,6 @@ const UserProfileScreen = () => {
       >
         <Text style={{ textAlign: 'center', color: theme.colors.text }}>
           {errorMessage}
-        </Text>
-      </ModalCustom>
-
-      {/* Image Picker Modal */}
-      <ModalCustom
-        isModalVisible={showImagePickerModal}
-        setIsModalVisible={setShowImagePickerModal}
-        title="Tính năng đang phát triển"
-        type="info"
-        isClose={false}
-        actionText="OK"
-      >
-        <Text style={{ textAlign: 'center', color: theme.colors.text }}>
-          Tính năng upload ảnh sẽ được bổ sung trong phiên bản tiếp theo.
         </Text>
       </ModalCustom>
     </SafeAreaView>
