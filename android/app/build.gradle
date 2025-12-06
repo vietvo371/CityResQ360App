@@ -84,6 +84,18 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        
+        // Manifest placeholders
+        manifestPlaceholders = [
+            usesCleartextTraffic: "true"
+        ]
+        
+        // Fix for react-native-screens deprecated API warnings
+        externalNativeBuild {
+            cmake {
+                cppFlags "-Wno-error=deprecated-declarations"
+            }
+        }
     }
     signingConfigs {
         debug {
