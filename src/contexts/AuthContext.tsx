@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, UserRole } from '../types/api/auth';
 import { authService } from '../services/authService';
 import { EkycVerifyRequest, EkycVerifyResponse } from '../types/ekyc';
+import NotificationTokenService from '../services/NotificationTokenService';
+import PushNotificationHelper from '../utils/PushNotificationHelper';
 
 // ============================================================================
 // TYPES - CityResQ360 User Roles & Data Structures
@@ -227,6 +229,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeApp();
   }, []);
 
+  // Thiết lập listener cho FCM token refresh
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = PushNotificationHelper.onTokenRefresh(async (newToken) => {
+      console.log('FCM Token đã được làm mới:', newToken);
+      
+      try {
+        await NotificationTokenService.updateTokenOnRefresh(newToken);
+      } catch (error) {
+        console.log('Lỗi khi cập nhật FCM token mới:', error);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
   const initializeApp = async () => {
     try {
       // Try to load stored token and validate it
@@ -315,6 +336,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshAIInsights(),
       ]);
 
+      // Đăng ký FCM token với server sau khi đăng nhập thành công
+      try {
+        await NotificationTokenService.registerTokenAfterLogin();
+        console.log('FCM token đã được đăng ký thành công');
+      } catch (fcmError) {
+        // Log lỗi nhưng không làm thất bại đăng nhập
+        console.log('Lỗi khi đăng ký FCM token (không ảnh hưởng đến đăng nhập):', fcmError);
+      }
+
       return {
         success: true,
       };
@@ -353,6 +383,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Hủy đăng ký FCM token trước khi đăng xuất
+      try {
+        await NotificationTokenService.unregisterTokenAfterLogout();
+        console.log('FCM token đã được hủy đăng ký');
+      } catch (fcmError) {
+        // Log lỗi nhưng vẫn tiếp tục đăng xuất
+        console.log('Lỗi khi hủy đăng ký FCM token (không ảnh hưởng đến đăng xuất):', fcmError);
+      }
+
       await authService.logout();
       setUser(null);
 
@@ -361,7 +400,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCivicEngagement(null);
       setGovernmentActivity(null);
       setAIInsights(null);
-
 
       // Clear AsyncStorage
       await AsyncStorage.multiRemove([

@@ -23,11 +23,15 @@ end
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
+  use_frameworks! :linkage => :static
+  $RNFirebaseAsStaticFramework = true
 end
 
 target 'CityResQ360App' do
   config = use_native_modules!
+
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],

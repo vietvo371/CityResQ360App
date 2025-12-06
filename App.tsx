@@ -28,9 +28,23 @@ import './src/i18n'; // Initialize i18n
 import { navigationRef } from './src/navigation/NavigationService';
 import { AlertProvider } from './src/services/AlertService';
 import AlertServiceConnector from './src/component/AlertServiceConnector';
+import NotificationService from './src/components/NotificationService';
 
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
+
+  // Xử lý thông báo khi app đang mở
+  const handleNotification = (notification: any) => {
+    console.log('Xử lý thông báo trong app:', notification);
+    // Bạn có thể thêm logic xử lý thông báo tùy chỉnh ở đây
+  };
+
+  // Xử lý khi người dùng mở thông báo
+  const handleNotificationOpened = (notification: any) => {
+    console.log('Người dùng mở thông báo:', notification);
+    // Bạn có thể điều hướng đến màn hình cụ thể dựa trên notification data
+    // Ví dụ: navigationRef.current?.navigate('NotificationDetail', { data: notification.data });
+  };
 
   const navigationTheme: Theme = {
     dark: isDarkMode,
@@ -79,6 +93,10 @@ const App = () => {
       <SafeAreaProvider>
         <AlertProvider>
           <AlertServiceConnector />
+          <NotificationService
+            onNotification={handleNotification}
+            onNotificationOpened={handleNotificationOpened}
+          />
           <AuthProvider>
             <StatusBar
               barStyle={isDarkMode ? 'light-content' : 'dark-content'}

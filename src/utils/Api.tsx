@@ -98,6 +98,9 @@ const getCurrentLocation = (): Promise<LocationData | null> => {
 
 const baseUrl = env.API_URL + '/api/v1';
 
+// Export baseUrl để sử dụng trong các service khác
+export const API_BASE_URL = env.API_URL + '/api/v1';
+
 const api = axios.create({
   baseURL: baseUrl,
   timeout: 15000, // 15 seconds

@@ -1,4 +1,4 @@
-import api from '../utils/Api';
+import api, { API_BASE_URL } from '../utils/Api';
 import { LoginRequest, LoginResponse, RegisterRequest, User, ChangePasswordRequest, ResetPasswordRequest, UpdateProfileRequest } from '../types/api/auth';
 import { ApiResponse } from '../types/api/common';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +7,8 @@ const TOKEN_KEY = '@auth_token';
 const USER_KEY = '@user_data';
 
 export const authService = {
+    // API base URL (có thể dùng để gửi request FCM token)
+    apiUrl: API_BASE_URL,
     login: async (credentials: LoginRequest): Promise<LoginResponse> => {
         try {
             const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', credentials);
