@@ -62,7 +62,7 @@ class PushNotificationHelper {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const response = await fetch(`${apiUrl}/api/update-fcm-token`, {
+      const response = await fetch(`${apiUrl}/auth/update-fcm-token`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
