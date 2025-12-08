@@ -50,8 +50,10 @@ const EditReportScreen = () => {
   const [updating, setUpdating] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [aiAnalysisMessage, setAiAnalysisMessage] = useState('');
 
   // Map Modal State
   const [showMapModal, setShowMapModal] = useState(false);
@@ -151,6 +153,17 @@ const EditReportScreen = () => {
     });
   };
 
+  const mapPriorityLevel = (priority: string): number => {
+    const priorityMap: { [key: string]: number } = {
+      'low': 1,
+      'medium': 2,
+      'high': 3,
+      'critical': 4,
+      'urgent': 4,
+    };
+    return priorityMap[priority.toLowerCase()] || 2;
+  };
+
   const handleSelectMedia = async () => {
     if (uploadedMedia.length >= 5) {
       setErrorMessage('Bạn chỉ được tải lên tối đa 5 ảnh/video');
@@ -171,31 +184,71 @@ const EditReportScreen = () => {
         setUploadingMedia(true);
         const newMedia: Media[] = [];
         const newMediaIds: number[] = [];
+        let aiAnalysisData: any = null;
 
         for (const asset of result.assets) {
           try {
+            console.log('🚀 [API Request] Upload Media:', asset.fileName);
             const response = await mediaService.uploadMedia(
               asset,
               asset.type?.includes('video') ? 'video' : 'image',
               'phan_anh',
               'Hình ảnh phản ánh'
             );
+            console.log('✅ [API Response] Upload Media:', response);
 
             if (response.success && response.data) {
               newMedia.push(response.data);
               newMediaIds.push(response.data.id);
+
+              // Get AI analysis from first uploaded image
+              if (!aiAnalysisData && response.data.ai_analysis) {
+                aiAnalysisData = response.data.ai_analysis;
+                console.log('🤖 [AI Analysis] Detected:', aiAnalysisData);
+              }
             }
           } catch (error) {
-            console.error('Upload Media Error:', error);
+            console.error('❌ [API Error] Upload Media:', error);
           }
         }
 
         if (newMedia.length > 0) {
           setUploadedMedia([...uploadedMedia, ...newMedia]);
-          setFormData(prev => ({
-            ...prev,
-            media_ids: [...(prev.media_ids || []), ...newMediaIds]
-          }));
+
+          // Auto-fill form with AI analysis if available
+          if (aiAnalysisData) {
+            const categoryLabel = CATEGORIES.find(c => c.value === aiAnalysisData.danh_muc_id)?.label || 'Khác';
+            const priorityLabel = PRIORITIES.find(p => p.value === mapPriorityLevel(aiAnalysisData.muc_do_uu_tien || 'medium'))?.label || 'Trung bình';
+
+            setFormData(prev => ({
+              ...prev,
+              media_ids: [...(prev.media_ids || []), ...newMediaIds],
+              // Update with AI suggestions (but don't override existing data completely)
+              danh_muc: aiAnalysisData.danh_muc_id || prev.danh_muc,
+              uu_tien: aiAnalysisData.muc_do_uu_tien 
+                ? mapPriorityLevel(aiAnalysisData.muc_do_uu_tien) 
+                : prev.uu_tien,
+            }));
+
+            // Prepare AI analysis message
+            const detectedObjects = aiAnalysisData.ai_analysis?.detected_objects || [];
+            const objectsText = detectedObjects.length > 0 
+              ? `\n\n🔍 Phát hiện: ${detectedObjects.slice(0, 5).join(', ')}${detectedObjects.length > 5 ? '...' : ''}` 
+              : '';
+
+            setAiAnalysisMessage(
+              `AI đã phân tích ảnh mới:\n\n` +
+              `📁 Gợi ý danh mục: ${categoryLabel}\n` +
+              `⚠️ Gợi ý mức độ: ${priorityLabel}${objectsText}\n\n` +
+              `Đã cập nhật tự động. Bạn có thể chỉnh sửa nếu cần.`
+            );
+            setShowAIModal(true);
+          } else {
+            setFormData(prev => ({
+              ...prev,
+              media_ids: [...(prev.media_ids || []), ...newMediaIds]
+            }));
+          }
         }
       }
     } catch (error) {
@@ -253,12 +306,12 @@ const EditReportScreen = () => {
       const response = await reportService.updateReport(reportId, formData);
 
       if (response.success) {
-        setSuccessMessage('Cập nhật phản ánh thành công!');
+        setSuccessMessage('Phản ánh của bạn đã được cập nhật thành công!');
         setShowSuccessModal(true);
       }
     } catch (error: any) {
       console.error('Update Report Error:', error);
-      let message = 'Không thể cập nhật phản ánh. Vui lòng thử lại.';
+      let message = 'Không thể cập nhật phản ánh của bạn. Vui lòng thử lại.';
 
       if (error.response?.data?.message) {
         message = error.response.data.message;
@@ -275,6 +328,27 @@ const EditReportScreen = () => {
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
+    
+    // Clear form data and states
+    setFormData({
+      tieu_de: '',
+      mo_ta: '',
+      danh_muc: 1,
+      vi_do: 10.7769,
+      kinh_do: 106.7009,
+      dia_chi: '',
+      uu_tien: 1,
+      la_cong_khai: true,
+      the_tags: [],
+      media_ids: []
+    });
+    
+    // Clear uploaded media
+    setUploadedMedia([]);
+    setCurrentTag('');
+    setErrors({});
+    
+    // Navigate back
     navigation.goBack();
   };
 
@@ -491,7 +565,13 @@ const EditReportScreen = () => {
 
         {/* Media Upload */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Hình ảnh/Video</Text>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Hình ảnh/Video</Text>
+            <View style={styles.aiChip}>
+              <Icon name="robot" size={14} color={theme.colors.primary} />
+              <Text style={styles.aiChipText}>AI phân tích</Text>
+            </View>
+          </View>
 
           <View style={styles.mediaList}>
             {uploadedMedia.map((media) => (
@@ -656,6 +736,18 @@ const EditReportScreen = () => {
       >
         <Text style={styles.modalText}>{errorMessage}</Text>
       </ModalCustom>
+
+      {/* AI Analysis Modal */}
+      <ModalCustom
+        isModalVisible={showAIModal}
+        setIsModalVisible={setShowAIModal}
+        title="🤖 AI đã phân tích ảnh"
+        type="success"
+        isClose={false}
+        actionText="Đồng ý"
+      >
+        <Text style={styles.aiModalText}>{aiAnalysisMessage}</Text>
+      </ModalCustom>
     </SafeAreaView>
   );
 };
@@ -691,6 +783,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: SPACING.md,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  aiChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary + '10',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  aiChipText: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -968,6 +1082,13 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  aiModalText: {
+    textAlign: 'left',
+    color: theme.colors.text,
+    fontSize: FONT_SIZE.sm,
+    lineHeight: 22,
+    paddingHorizontal: SPACING.xs,
   },
 });
 

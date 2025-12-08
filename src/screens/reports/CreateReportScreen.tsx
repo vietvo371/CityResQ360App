@@ -378,6 +378,27 @@ const CreateReportScreen = () => {
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
+    
+    // Reset form data
+    setFormData({
+      tieu_de: '',
+      mo_ta: '',
+      danh_muc: 1,
+      vi_do: 10.7769,
+      kinh_do: 106.7009,
+      dia_chi: '',
+      uu_tien: 1,
+      la_cong_khai: true,
+      the_tags: [],
+      media_ids: []
+    });
+    
+    // Clear uploaded media
+    setUploadedMedia([]);
+    setCurrentTag('');
+    setErrors({});
+    
+    // Navigate back
     navigation.goBack();
   };
 

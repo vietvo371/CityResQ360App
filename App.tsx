@@ -5,17 +5,6 @@
  * @format
  */
 
-/**
- * GreenEduMap Mobile App
- * 
- * Nền tảng di động dành cho công dân, học sinh và nhà quản lý đô thị,
- * giúp quan sát – phân tích – hành động dựa trên dữ liệu môi trường,
- * năng lượng và giáo dục mở (Open Data).
- * 
- * Kết nối dữ liệu từ OpenAQ, OpenWeather, NASA POWER, OpenStreetMap
- * và cung cấp đề xuất "hành động xanh" do AI gợi ý.
- */
-
 import React from 'react';
 import { StatusBar, useColorScheme, Platform } from 'react-native';
 import { NavigationContainer, Theme } from '@react-navigation/native';
