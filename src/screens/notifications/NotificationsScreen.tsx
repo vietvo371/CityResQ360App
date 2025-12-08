@@ -1,24 +1,73 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import PageHeader from '../../component/PageHeader';
 import { theme, SPACING, FONT_SIZE, BORDER_RADIUS, SCREEN_PADDING } from '../../theme';
+import { useNotifications, Notification as WSNotification } from '../../hooks/useNotifications';
 import { notificationService } from '../../services/notificationService';
-import { Notification } from '../../types/api/notification';
+import { Notification as APINotification } from '../../types/api/notification';
+
+// Unified notification type
+interface UnifiedNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+  data?: any;
+  source: 'api' | 'websocket';
+}
 
 const NotificationsScreen = () => {
   const navigation = useNavigation();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  
+  // WebSocket notifications (realtime)
+  const wsHook = useNotifications();
+  console.log('🔍 wsHook:', wsHook);
+  
+  const [apiNotifications, setApiNotifications] = useState<APINotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Convert API notification to unified format
+  const convertAPINotification = (n: APINotification): UnifiedNotification => {
+    // Map API data structure to match WebSocket format
+    const reportId = n.du_lieu_mo_rong?.phan_anh_id;
+    
+    return {
+      id: `api-${n.id}`,
+      type: n.loai || 'system',
+      title: n.tieu_de,
+      message: n.noi_dung,
+      timestamp: new Date(n.ngay_tao),
+      read: n.da_doc,
+      data: reportId ? { id: reportId, ...n.du_lieu_mo_rong } : n.du_lieu_mo_rong,
+      source: 'api',
+    };
+  };
+
+  // Convert WebSocket notification to unified format
+  const convertWSNotification = (n: WSNotification): UnifiedNotification => ({
+    id: `ws-${n.id}`,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    timestamp: n.timestamp,
+    read: n.read || false,
+    data: n.data,
+    source: 'websocket',
+  });
+
+  // Fetch notifications from API
   const fetchNotifications = useCallback(async () => {
     try {
       const response = await notificationService.getNotifications();
+      console.log('🔍 fetchNotifications response:', response);
       if (response.success) {
-        setNotifications(response.data);
+        setApiNotifications(response.data);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -37,7 +86,20 @@ const NotificationsScreen = () => {
     fetchNotifications();
   };
 
+  // Merge and sort notifications
+  const wsNotifsArray = wsHook?.notifications || [];
+  const allNotifications: UnifiedNotification[] = [
+    ...wsNotifsArray.map(convertWSNotification),
+    ...apiNotifications.map(convertAPINotification),
+  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
   const handleMarkAllRead = async () => {
+    // Mark WebSocket notifications as read
+    if (wsHook?.markAllAsRead) {
+      wsHook.markAllAsRead();
+    }
+    
+    // Mark API notifications as read
     try {
       await notificationService.markAllAsRead();
       fetchNotifications();
@@ -46,61 +108,123 @@ const NotificationsScreen = () => {
     }
   };
 
-  const handleNotificationPress = async (item: Notification) => {
-    if (!item.da_doc) {
-      try {
-        await notificationService.markAsRead(item.id);
-        // Optimistic update
-        setNotifications(prev =>
-          prev.map(n => n.id === item.id ? { ...n, da_doc: true } : n)
-        );
-      } catch (error) {
-        console.error('Error marking as read:', error);
+  const handleNotificationPress = async (item: UnifiedNotification) => {
+    console.log('🔔 Notification pressed:', item);
+    
+    // Mark as read based on source
+    if (!item.read) {
+      console.log('📖 Marking as read...');
+      if (item.source === 'websocket') {
+        if (wsHook?.markAsRead) {
+          wsHook.markAsRead(item.id.replace('ws-', ''));
+        }
+      } else {
+        try {
+          const apiId = parseInt(item.id.replace('api-', ''));
+          await notificationService.markAsRead(apiId);
+          // Optimistic update
+          setApiNotifications(prev =>
+            prev.map(n => n.id === apiId ? { ...n, da_doc: true } : n)
+          );
+        } catch (error) {
+          console.error('Error marking as read:', error);
+        }
       }
     }
 
-    // Navigate based on type/data if needed
-    // if (item.data?.report_id) navigation.navigate('ReportDetail', { id: item.data.report_id });
+    // Navigate to report detail if it's a report notification
+    const isReportNotification = item.type === 'report_status' || 
+                                  item.type === 'report_status_update';
+    
+    if (isReportNotification && item.data?.id) {
+      console.log('🚀 Navigating to ReportDetail with ID:', item.data.id);
+      navigation.navigate('ReportDetail' as any, { 
+        reportId: item.data.id ,
+        id: item.data.id
+      } as any);
+    } else {
+      console.log('⚠️ No report data to navigate to. Type:', item.type, 'Data:', item.data);
+    }
   };
 
   const getIconForType = (type: string) => {
     switch (type) {
-      case 'system': return 'information';
-      case 'report_update': return 'file-document-edit-outline';
-      case 'reward': return 'gift-outline';
-      case 'warning': return 'alert-circle-outline';
-      default: return 'bell-outline';
+      case 'report_status':
+      case 'report_status_update':
+        return 'file-document-edit-outline';
+      case 'points_updated':
+        return 'star-circle';
+      case 'wallet_updated':
+        return 'wallet';
+      case 'new_nearby_report':
+        return 'map-marker-alert';
+      default:
+        return 'bell-outline';
     }
   };
 
   const getColorForType = (type: string) => {
     switch (type) {
-      case 'system': return theme.colors.info;
-      case 'report_update': return theme.colors.primary;
-      case 'reward': return theme.colors.success;
-      case 'warning': return theme.colors.warning;
-      default: return theme.colors.textSecondary;
+      case 'report_status':
+      case 'report_status_update':
+        return theme.colors.primary;
+      case 'points_updated':
+        return theme.colors.success;
+      case 'wallet_updated':
+        return theme.colors.warning;
+      case 'new_nearby_report':
+        return '#8B5CF6';
+      default:
+        return theme.colors.textSecondary;
     }
   };
 
-  const renderItem = ({ item }: { item: Notification }) => (
-    <TouchableOpacity
-      style={[styles.itemContainer, !item.da_doc && styles.unreadItem]}
-      onPress={() => handleNotificationPress(item)}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: getColorForType(item.loai) + '15' }]}>
-        <Icon name={getIconForType(item.loai)} size={24} color={getColorForType(item.loai)} />
-      </View>
-      <View style={styles.itemContent}>
-        <Text style={[styles.itemTitle, !item.da_doc && styles.unreadText]}>{item.tieu_de}</Text>
-        <Text style={styles.itemBody} numberOfLines={2}>{item.noi_dung}</Text>
-        <Text style={styles.itemTime}>
-          {new Date(item.ngay_tao).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </View>
-      {!item.da_doc && <View style={styles.unreadDot} />}
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: UnifiedNotification }) => {
+    const isReportNotification = item.type === 'report_status' || 
+                                  item.type === 'report_status_update';
+    const hasReportDetail = isReportNotification && item.data?.id;
+    
+    return (
+      <TouchableOpacity
+        style={[styles.itemContainer, !item.read && styles.unreadItem]}
+        onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: getColorForType(item.type) + '15' }]}>
+          <Icon name={getIconForType(item.type)} size={24} color={getColorForType(item.type)} />
+        </View>
+        <View style={styles.itemContent}>
+          <Text style={[styles.itemTitle, !item.read && styles.unreadText]}>{item.title}</Text>
+          <Text style={styles.itemBody} numberOfLines={2}>{item.message}</Text>
+          
+          <View style={styles.itemFooter}>
+            <Text style={styles.itemTime}>
+              {new Date(item.timestamp).toLocaleDateString('vi-VN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit',
+              })}
+            </Text>
+            
+            {hasReportDetail && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleNotificationPress(item);
+                }}
+              >
+                <Text style={styles.actionText}>Xem chi tiết</Text>
+                <Icon name="chevron-right" size={16} color={theme.colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        {!item.read && <View style={styles.unreadDot} />}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -117,9 +241,9 @@ const NotificationsScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={notifications}
+          data={allNotifications}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -181,11 +305,30 @@ const styles = StyleSheet.create({
   itemBody: {
     fontSize: FONT_SIZE.sm,
     color: theme.colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  itemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   itemTime: {
     fontSize: FONT_SIZE.xs,
     color: theme.colors.textSecondary,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  actionText: {
+    fontSize: FONT_SIZE.xs,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    marginRight: 2,
   },
   unreadDot: {
     width: 8,

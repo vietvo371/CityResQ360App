@@ -23,6 +23,7 @@ import {
   hp,
 } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 import { notificationService } from '../../services/notificationService';
 import { statsService } from '../../services/statsService';
 import { reportService } from '../../services/reportService';
@@ -60,8 +61,8 @@ interface StatsData {
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { unreadCount, registerRefreshCallback } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [statsData, setStatsData] = useState<StatsData | null>(null);
   const [recentReports, setRecentReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,39 +118,34 @@ const HomeScreen = () => {
       setLoading(false);
     }
   };
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await notificationService.getUnreadCount();
+      if (response.success) {
+        console.log('📊 Unread count from API:', response.data.count);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching unread count:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await notificationService.getUnreadCount();
-        if (response.success) {
-          setUnreadCount(response.data.count);
-        }
-      } catch (error) {
-        console.error('Error fetching unread count:', error);
-      }
-    };
-
-    fetchUnreadCount();
     fetchData();
 
-    // Optional: Poll every minute or use socket if available
-    const interval = setInterval(fetchUnreadCount, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    // Register callback to refresh data when receiving WebSocket events
+    const unregister = registerRefreshCallback(() => {
+      console.log('🔄 HomeScreen: Refreshing data due to WebSocket event');
+    fetchData();
+    });
+
+    return () => {
+      unregister();
+    };
+  }, [registerRefreshCallback]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await fetchData();
-    // Also refresh unread count
-    try {
-      const response = await notificationService.getUnreadCount();
-      if (response.success) {
-        setUnreadCount(response.data.count);
-      }
-    } catch (error) {
-      console.error('Error refreshing:', error);
-    }
     setRefreshing(false);
   }, []);
 

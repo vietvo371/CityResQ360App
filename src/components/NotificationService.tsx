@@ -57,13 +57,13 @@ const NotificationService: React.FC<NotificationServiceProps> = ({
       }
       
       // Hiển thị alert cho thông báo foreground
-      if (remoteMessage.notification) {
-        Alert.alert(
-          remoteMessage.notification.title || 'Thông báo',
-          remoteMessage.notification.body || '',
-          [{ text: 'OK' }]
-        );
-      }
+      // if (remoteMessage.notification) {
+      //   Alert.alert(
+      //     remoteMessage.notification.title || 'Thông báo',
+      //     remoteMessage.notification.body || '',
+      //     [{ text: 'OK' }]
+      //   );
+      // }
     });
 
     // Xử lý khi người dùng nhấp vào thông báo và app đang ở background

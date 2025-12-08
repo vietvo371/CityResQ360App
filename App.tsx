@@ -108,6 +108,7 @@ const App = () => {
               <NavigationContainer theme={navigationTheme} ref={navigationRef}>
                 <MainNavigator />
               </NavigationContainer>
+              {/* NotificationBanner phải nằm BÊN TRONG WebSocketProvider để nhận context */}
               <NotificationBanner />
             </WebSocketProvider>
           </AuthProvider>

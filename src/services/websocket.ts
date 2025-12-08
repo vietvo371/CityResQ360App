@@ -24,7 +24,7 @@ const getEchoConfig = () => ({
 });
 
 class WebSocketService {
-  private echo: Echo | null = null;
+  private echo: Echo<any> | null = null;
   private pusher: Pusher | null = null;
   private channels: Map<string, any> = new Map();
   private isConnected: boolean = false;
@@ -194,6 +194,53 @@ class WebSocketService {
     this.channels.set(channelName, channel);
 
     console.log(`✅ Subscribed to ${channelName}`);
+    
+    // 🔍 DEBUG: Listen to ALL events on this channel
+    if (this.pusher) {
+      const pusherChannelName = channelName.startsWith('private-') 
+        ? `private-${channelName.replace('private-', '')}` 
+        : channelName;
+      const pusherChannel = this.pusher.channel(pusherChannelName);
+      
+      if (pusherChannel) {
+        pusherChannel.bind_global((eventName: string, data: any) => {
+          console.log(`🌍 [${channelName}] Global event:`, eventName);
+          console.log(`📦 [${channelName}] Event data:`, data);
+        });
+      }
+    }
+    
+    return channel;
+  }
+
+  /**
+   * Subscribe using Pusher API directly (alternative method)
+   */
+  subscribePusher(channelName: string, eventName: string, callback: (data: any) => void) {
+    if (!this.pusher) {
+      throw new Error('Pusher not available');
+    }
+
+    console.log(`📡 [Pusher] Subscribing to ${channelName}...`);
+    
+    const channel = this.pusher.subscribe(channelName);
+    
+    channel.bind('pusher:subscription_succeeded', () => {
+      console.log(`✅ [Pusher] Subscribed to ${channelName}`);
+    });
+
+    channel.bind('pusher:subscription_error', (error: any) => {
+      console.error(`❌ [Pusher] Subscription error on ${channelName}:`, error);
+    });
+    
+    channel.bind(eventName, (data: any) => {
+      console.log(`📩 [Pusher] Event ${eventName} received:`, data);
+      callback(data);
+    });
+    
+    console.log(`👂 [Pusher] Listening to ${eventName} on ${channelName}`);
+    
+    this.channels.set(`pusher-${channelName}`, channel);
     
     return channel;
   }

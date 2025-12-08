@@ -8,6 +8,7 @@ interface WebSocketContextType {
   subscribe: (channel: string) => void;
   unsubscribe: (channel: string) => void;
   listen: (channel: string, event: string, callback: (data: any) => void) => void;
+  subscribePusher: (channel: string, event: string, callback: (data: any) => void) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -68,8 +69,12 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     WebSocketService.listen(channel, event, callback);
   };
 
+  const subscribePusher = (channel: string, event: string, callback: (data: any) => void) => {
+    WebSocketService.subscribePusher(channel, event, callback);
+  };
+
   return (
-    <WebSocketContext.Provider value={{ isConnected, subscribe, unsubscribe, listen }}>
+    <WebSocketContext.Provider value={{ isConnected, subscribe, unsubscribe, listen, subscribePusher }}>
       {children}
     </WebSocketContext.Provider>
   );
