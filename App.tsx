@@ -23,6 +23,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MainNavigator from './src/navigation/MainTabNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { WebSocketProvider } from './src/contexts/WebSocketContext';
+import { NotificationBanner } from './src/components/NotificationBanner';
 import { theme } from './src/theme/colors';
 import './src/i18n'; // Initialize i18n
 import { navigationRef } from './src/navigation/NavigationService';
@@ -98,13 +100,16 @@ const App = () => {
             onNotificationOpened={handleNotificationOpened}
           />
           <AuthProvider>
-            <StatusBar
-              barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-              backgroundColor={theme.colors.background}
-            />
-            <NavigationContainer theme={navigationTheme} ref={navigationRef}>
-              <MainNavigator />
-            </NavigationContainer>
+            <WebSocketProvider>
+              <StatusBar
+                barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+                backgroundColor={theme.colors.background}
+              />
+              <NavigationContainer theme={navigationTheme} ref={navigationRef}>
+                <MainNavigator />
+              </NavigationContainer>
+              <NotificationBanner />
+            </WebSocketProvider>
           </AuthProvider>
         </AlertProvider>
       </SafeAreaProvider>

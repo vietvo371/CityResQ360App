@@ -85,11 +85,11 @@ const MapScreen = () => {
 
   const getStatusColor = (status: number): string => {
     switch (status) {
-      case 0: return theme.colors.warning;
-      case 1: return theme.colors.info;
-      case 2: return theme.colors.info;
-      case 3: return theme.colors.success;
-      case 4: return theme.colors.error;
+      case 0: return theme.colors.warning;     // Tiếp nhận
+      case 1: return theme.colors.info;        // Đã xác minh
+      case 2: return '#8B5CF6';                // Đang xử lý - Purple
+      case 3: return theme.colors.success;     // Hoàn thành
+      case 4: return theme.colors.error;       // Từ chối
       default: return theme.colors.textSecondary;
     }
   };

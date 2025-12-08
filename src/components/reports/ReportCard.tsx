@@ -13,13 +13,14 @@ interface ReportCardProps {
 
 const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = false, renderAction }) => {
     const getCategoryColor = (category: number) => {
-        const colors = [
-            theme.colors.primary,   // 0: Giao thông
-            theme.colors.success,   // 1: Môi trường
-            theme.colors.error,     // 2: Cháy nổ
-            theme.colors.warning,   // 3: Rác thải
-            theme.colors.info,      // 4: Ngập lụt
-        ];
+        const colors: { [key: number]: string } = {
+            1: '#EF4444',   // Giao thông
+            2: '#10B981',   // Môi trường
+            3: '#F97316',   // Cháy nổ
+            4: '#8B5CF6',   // Rác thải
+            5: '#3B82F6',   // Ngập lụt
+            6: '#6B7280',   // Khác
+        };
         return colors[category] || theme.colors.textSecondary;
     };
 
@@ -35,10 +36,10 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
 
     const getStatusColor = (status: number) => {
         switch (status) {
-            case 0: return '#4B5563'; // Chờ xử lý - Gray 600
-            case 1: return theme.colors.info;          // Đã xác nhận
-            case 2: return theme.colors.warning;       // Đang xử lý
-            case 3: return theme.colors.success;       // Đã giải quyết
+            case 0: return theme.colors.warning;       // Tiếp nhận
+            case 1: return theme.colors.info;          // Đã xác minh
+            case 2: return '#8B5CF6';                  // Đang xử lý - Purple
+            case 3: return theme.colors.success;       // Hoàn thành
             case 4: return theme.colors.error;         // Từ chối
             default: return theme.colors.textSecondary;
         }
@@ -46,10 +47,10 @@ const ReportCard: React.FC<ReportCardProps> = ({ report, onPress, showActions = 
 
     const getStatusText = (status: number): string => {
         switch (status) {
-            case 0: return 'Chờ xử lý';
-            case 1: return 'Đã xác nhận';
+            case 0: return 'Tiếp nhận';
+            case 1: return 'Đã xác minh';
             case 2: return 'Đang xử lý';
-            case 3: return 'Đã giải quyết';
+            case 3: return 'Hoàn thành';
             case 4: return 'Từ chối';
             default: return 'Không rõ';
         }

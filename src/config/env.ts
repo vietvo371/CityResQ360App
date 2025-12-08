@@ -5,8 +5,19 @@
 const env = {
   // API URL
   API_URL: 'https://api.cityresq360.io.vn',
-  BROADCAST_HOST: 'mimo.dragonlab.vn',
-  PUSHER_KEY: '1',
+
+  // WebSocket Configuration
+  // Backend dùng Nginx reverse proxy: /app/ -> localhost:6001
+  // Mobile app kết nối qua HTTPS (port 443) giống web
+  REVERB_APP_ID:808212,
+  REVERB_APP_KEY: 'lwf6joghdvbowg9hb7p4',
+  REVERB_APP_SECRET: 'yh8dts6nhxqzn2i77yim',
+  REVERB_HOST: 'api.cityresq360.io.vn',
+  REVERB_PORT: 443,  // Port HTTPS thay vì 6001
+  REVERB_SCHEME: 'https',
+  
+  // Bật WebSocket (web đã hoạt động, mobile cũng sẽ hoạt động với port 443)
+  ENABLE_WEBSOCKET: true,
 
   // System Configuration
   TIMEOUT: 15000,

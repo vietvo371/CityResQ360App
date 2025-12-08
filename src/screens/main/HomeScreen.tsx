@@ -194,15 +194,15 @@ const HomeScreen = () => {
           icon: 'alert-circle-outline',
           color: theme.colors.primary,
         },
-        {
-          id: 'resolved',
-          title: 'Đã giải quyết',
-          value: '---',
-          change: '--',
-          trend: 'up' as const,
-          icon: 'check-circle-outline',
-          color: theme.colors.success,
-        },
+      {
+        id: 'resolved',
+        title: 'Hoàn thành',
+        value: '---',
+        change: '--',
+        trend: 'up' as const,
+        icon: 'check-circle-outline',
+        color: theme.colors.success,
+      },
         {
           id: 'pending',
           title: 'Đang xử lý',
@@ -231,7 +231,7 @@ const HomeScreen = () => {
       },
       {
         id: 'resolved',
-        title: 'Đã giải quyết',
+        title: 'Hoàn thành',
         value: formatNumber(statsData.da_giai_quyet),
         change: resolvedPercentage,
         trend: 'up' as const,
@@ -253,13 +253,14 @@ const HomeScreen = () => {
   };
 
   const getCategoryColor = (categoryId: number): string => {
-    const colors = [
-      theme.colors.primary,   // 0: Giao thông
-      theme.colors.success,   // 1: Môi trường
-      theme.colors.error,     // 2: Cháy nổ
-      theme.colors.warning,   // 3: Rác thải
-      theme.colors.info,      // 4: Ngập lụt
-    ];
+    const colors: { [key: number]: string } = {
+      1: '#EF4444',   // Giao thông
+      2: '#10B981',   // Môi trường
+      3: '#F97316',   // Cháy nổ
+      4: '#8B5CF6',   // Rác thải
+      5: '#3B82F6',   // Ngập lụt
+      6: '#6B7280',   // Khác
+    };
     return colors[categoryId] || theme.colors.textSecondary;
   };
 
@@ -317,12 +318,12 @@ const HomeScreen = () => {
 
   const getCategoryName = (categoryId: number): string => {
     const categories: { [key: number]: string } = {
-      0: 'Giao thông',
-      1: 'Môi trường',
-      2: 'Cháy nổ',
-      3: 'Rác thải',
-      4: 'Ngập lụt',
-      5: 'Khác',
+      1: 'Giao thông',
+      2: 'Môi trường',
+      3: 'Cháy nổ',
+      4: 'Rác thải',
+      5: 'Ngập lụt',
+      6: 'Khác',
     };
     return categories[categoryId] || 'Khác';
   };

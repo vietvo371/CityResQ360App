@@ -150,11 +150,11 @@ const ReportDetailScreen = () => {
 
   const getStatusColor = (status: number) => {
     switch (status) {
-      case 0: return theme.colors.warning;
-      case 1: return theme.colors.info;
-      case 2: return theme.colors.success;
-      case 3: return theme.colors.success; // Resolved
-      case 4: return theme.colors.error;
+      case 0: return theme.colors.warning;     // Tiếp nhận
+      case 1: return theme.colors.info;        // Đã xác minh
+      case 2: return '#8B5CF6';                // Đang xử lý - Purple
+      case 3: return theme.colors.success;     // Hoàn thành
+      case 4: return theme.colors.error;       // Từ chối
       default: return theme.colors.textSecondary;
     }
   };
@@ -171,10 +171,10 @@ const ReportDetailScreen = () => {
 
   const getStatusText = (status: number): string => {
     switch (status) {
-      case 0: return 'Chờ xử lý';
-      case 1: return 'Đã xác nhận';
+      case 0: return 'Tiếp nhận';
+      case 1: return 'Đã xác minh';
       case 2: return 'Đang xử lý';
-      case 3: return 'Đã giải quyết';
+      case 3: return 'Hoàn thành';
       case 4: return 'Từ chối';
       default: return 'Không rõ';
     }

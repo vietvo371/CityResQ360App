@@ -29,15 +29,21 @@ export const getReportAILabels = (report: Report): string[] => {
 
 /**
  * Format report status to readable text
+ * Backend constants:
+ * - TRANG_THAI_PENDING = 0 (Tiếp nhận)
+ * - TRANG_THAI_VERIFIED = 1 (Đã xác minh)
+ * - TRANG_THAI_IN_PROGRESS = 2 (Đang xử lý)
+ * - TRANG_THAI_RESOLVED = 3 (Hoàn thành)
+ * - TRANG_THAI_REJECTED = 4 (Từ chối)
  * @param trang_thai - Status code
  * @returns Status text in Vietnamese
  */
 export const getStatusText = (trang_thai: number): string => {
     const statusMap: Record<number, string> = {
-        0: 'Chờ xử lý',
-        1: 'Đang xử lý',
-        2: 'Đang giải quyết',
-        3: 'Đã giải quyết',
+        0: 'Tiếp nhận',
+        1: 'Đã xác minh',
+        2: 'Đang xử lý',
+        3: 'Hoàn thành',
         4: 'Từ chối',
     };
     return statusMap[trang_thai] || 'Không xác định';
@@ -50,11 +56,11 @@ export const getStatusText = (trang_thai: number): string => {
  */
 export const getStatusColor = (trang_thai: number): string => {
     const colorMap: Record<number, string> = {
-        0: '#F59E0B', // Amber - Pending
-        1: '#3B82F6', // Blue - Processing
-        2: '#8B5CF6', // Purple - Resolving
-        3: '#10B981', // Green - Resolved
-        4: '#EF4444', // Red - Rejected
+        0: '#F59E0B', // Amber - Tiếp nhận (Pending)
+        1: '#3B82F6', // Blue - Đã xác minh (Verified)
+        2: '#8B5CF6', // Purple - Đang xử lý (In Progress)
+        3: '#10B981', // Green - Hoàn thành (Resolved)
+        4: '#EF4444', // Red - Từ chối (Rejected)
     };
     return colorMap[trang_thai] || '#6B7280';
 };

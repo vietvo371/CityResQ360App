@@ -22,12 +22,12 @@ MapboxGL.setAccessToken(env.MAPBOX_ACCESS_TOKEN);
 
 // Category options matching API
 const CATEGORIES = [
-  { value: 0, label: 'Giao thông', icon: 'car', color: theme.colors.primary },
-  { value: 1, label: 'Môi trường', icon: 'leaf', color: theme.colors.success },
-  { value: 2, label: 'Hỏa hoạn', icon: 'fire', color: theme.colors.error },
-  { value: 3, label: 'Rác thải', icon: 'delete', color: theme.colors.warning },
-  { value: 4, label: 'Ngập lụt', icon: 'water', color: theme.colors.info },
-  { value: 5, label: 'Khác', icon: 'dots-horizontal', color: theme.colors.textSecondary },
+  { value: 1, label: 'Giao thông', icon: 'car', color: '#EF4444' },
+  { value: 2, label: 'Môi trường', icon: 'leaf', color: '#10B981' },
+  { value: 3, label: 'Cháy nổ', icon: 'fire', color: '#F97316' },
+  { value: 4, label: 'Rác thải', icon: 'delete', color: '#8B5CF6' },
+  { value: 5, label: 'Ngập lụt', icon: 'water', color: '#3B82F6' },
+  { value: 6, label: 'Khác', icon: 'dots-horizontal', color: '#6B7280' },
 ];
 
 // Priority options matching API
@@ -60,7 +60,7 @@ const CreateReportScreen = () => {
   const [formData, setFormData] = useState<CreateReportRequest>({
     tieu_de: '',
     mo_ta: '',
-    danh_muc: 0,
+    danh_muc: 1,
     vi_do: 10.7769, // Default location (can be updated with GPS)
     kinh_do: 106.7009,
     dia_chi: '',
