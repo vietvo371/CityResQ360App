@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -59,27 +59,24 @@ const InputCustom: React.FC<InputCustomProps> = ({
   maxLength,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
+  const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
   const inputRef = useRef<TextInput>(null);
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  // 🔥 FIX: Animation khi value thay đổi (tự động điền)
+  useEffect(() => {
     Animated.timing(animatedValue, {
-      toValue: 1,
+      toValue: value || isFocused ? 1 : 0,
       duration: 200,
       useNativeDriver: false,
     }).start();
+  }, [value, isFocused]);
+
+  const handleFocus = () => {
+    setIsFocused(true);
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    if (!value) {
-      Animated.timing(animatedValue, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-    }
   };
 
   const labelStyle = {
